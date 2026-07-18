@@ -88,6 +88,27 @@ export const approveRemediationPlan = (input: {
   };
 };
 
+export const cancelRemediationPlan = (input: {
+  findings: readonly ManagedVulnerabilityFinding[];
+  plan: RemediationPlan;
+}) => {
+  if (input.plan.status !== "draft" && input.plan.status !== "approved")
+    throw new Error(
+      "Only draft or approved remediation plans can be cancelled",
+    );
+  assertPlanFindings(input.plan, input.findings);
+  return {
+    findings:
+      input.plan.status === "approved"
+        ? input.findings.map((finding) => ({
+            ...finding,
+            status: "confirmed" as const,
+          }))
+        : [...input.findings],
+    plan: { ...input.plan, status: "cancelled" as const },
+  };
+};
+
 export const startRemediationExecution = (input: {
   executionId: string;
   findings: readonly ManagedVulnerabilityFinding[];

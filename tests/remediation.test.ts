@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   approveRemediationPlan,
+  cancelRemediationPlan,
   completeRemediationExecution,
   createRemediationPlan,
   startRemediationExecution,
@@ -41,6 +42,36 @@ const deploymentEvidence = {
 };
 
 describe("remediation lifecycle", () => {
+  test("cancels draft and approved plans without leaving findings reserved", () => {
+    const draft = createRemediationPlan({
+      actions: [action],
+      createdAt: "2026-07-18T18:30:00Z",
+      createdBy: "security-team",
+      findings: [finding],
+      id: "plan-cancel",
+      rollbackSummary: "Reactivate the retained release.",
+    });
+    const cancelledDraft = cancelRemediationPlan({
+      findings: [finding],
+      plan: draft,
+    });
+    expect(cancelledDraft.plan.status).toBe("cancelled");
+    expect(cancelledDraft.findings[0]?.status).toBe("confirmed");
+
+    const approved = approveRemediationPlan({
+      approvedAt: "2026-07-18T19:00:00Z",
+      approvedBy: "operator-2",
+      findings: [finding],
+      plan: draft,
+    });
+    const cancelledApproved = cancelRemediationPlan({
+      findings: approved.findings,
+      plan: approved.plan,
+    });
+    expect(cancelledApproved.plan.status).toBe("cancelled");
+    expect(cancelledApproved.findings[0]?.status).toBe("confirmed");
+  });
+
   test("requires approval, deployment evidence, and later inventory absence", () => {
     const draft = createRemediationPlan({
       actions: [action],
