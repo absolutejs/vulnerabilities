@@ -8,6 +8,7 @@ export * from "./identity";
 export * from "./risk";
 export * from "./stores";
 export * from "./versioning";
+export * from "./vex";
 export {
   ISO_TIMESTAMP_PATTERN,
   IdentifierSchema,

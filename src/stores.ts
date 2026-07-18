@@ -2,6 +2,8 @@ import type {
   ManagedVulnerabilityFinding,
   VulnerabilityObservation,
   VulnerabilityRiskAssessment,
+  VexDecision,
+  VexFindingApplication,
 } from "./contracts";
 
 export type ManagedFindingFilter = {
@@ -10,6 +12,32 @@ export type ManagedFindingFilter = {
   severity?: ManagedVulnerabilityFinding["severity"];
   status?: ManagedVulnerabilityFinding["status"];
   tenantId: string;
+};
+
+export type VexDecisionFilter = {
+  limit?: number;
+  productId?: string;
+  tenantId: string;
+  vulnerabilityId?: string;
+};
+
+export type VexDecisionStore = {
+  get: (tenantId: string, decisionId: string) => Promise<VexDecision | null>;
+  list: (filter: VexDecisionFilter) => Promise<VexDecision[]>;
+  save: (tenantId: string, decision: VexDecision) => Promise<void>;
+  saveMany: (
+    tenantId: string,
+    decisions: readonly VexDecision[],
+  ) => Promise<void>;
+};
+
+export type VexFindingApplicationStore = {
+  get: (
+    tenantId: string,
+    findingId: string,
+  ) => Promise<VexFindingApplication | null>;
+  save: (application: VexFindingApplication) => Promise<void>;
+  saveMany: (applications: readonly VexFindingApplication[]) => Promise<void>;
 };
 
 export type VulnerabilityRiskAssessmentFilter = {

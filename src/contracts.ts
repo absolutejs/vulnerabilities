@@ -312,6 +312,21 @@ export const VexDecisionSchema = Type.Object(
 );
 export type VexDecision = Static<typeof VexDecisionSchema>;
 
+export const VexFindingApplicationSchema = Type.Object(
+  {
+    appliedAt: TimestampSchema,
+    contract: Type.Literal(VULNERABILITY_CONTRACT_VERSION),
+    decisionId: IdentifierSchema,
+    endedAt: NullableTimestampSchema,
+    findingId: IdentifierSchema,
+    previousStatus: FindingStatusSchema,
+    resultingStatus: FindingStatusSchema,
+    tenantId: IdentifierSchema,
+  },
+  { additionalProperties: false },
+);
+export type VexFindingApplication = Static<typeof VexFindingApplicationSchema>;
+
 export const RiskPrioritySchema = Type.Union([
   Type.Literal("emergency"),
   Type.Literal("critical"),
