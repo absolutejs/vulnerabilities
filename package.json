@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/vulnerabilities",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Scanner-neutral vulnerability normalization, policy gates, host inventory, and audit-ready evidence for AbsoluteJS applications.",
   "type": "module",
   "license": "BSL-1.1",
@@ -58,10 +58,14 @@
   ],
   "dependencies": {
     "@absolutejs/manifest": "0.3.0",
-    "@sinclair/typebox": "0.34.52"
+    "@renovatebot/pep440": "5.0.0",
+    "@sinclair/typebox": "0.34.52",
+    "packageurl-js": "2.0.1",
+    "semver": "7.8.5"
   },
   "devDependencies": {
     "@types/bun": "1.3.14",
+    "@types/semver": "7.7.1",
     "prettier": "3.8.1",
     "typescript": "5.9.3"
   }

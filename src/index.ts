@@ -3,6 +3,7 @@ import { ISO_TIMESTAMP_PATTERN } from "./primitives";
 
 export * from "./contracts";
 export * from "./identity";
+export * from "./versioning";
 export {
   ISO_TIMESTAMP_PATTERN,
   IdentifierSchema,

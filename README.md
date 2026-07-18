@@ -67,3 +67,36 @@ const findingId = createStableFindingId({
 
 Alias order, duplicate aliases, and identifier case do not change the result.
 Changing the tenant, asset, component identity, or vulnerability identity does.
+
+## Version intelligence
+
+Version comparison is ecosystem-aware and explainable. Debian/Ubuntu revisions,
+epochs, and backport suffixes are preserved rather than reduced to upstream
+versions. SemVer, Go module, Python PEP 440, and NuGet versions use their native
+ordering rules.
+
+```ts
+import {
+  comparePackageVersions,
+  evaluateVersionConstraints,
+} from "@absolutejs/vulnerabilities";
+
+comparePackageVersions({
+  ecosystem: "ubuntu",
+  left: "1.24.0-2ubuntu7.4",
+  right: "1.24.0-2ubuntu7.5",
+});
+
+evaluateVersionConstraints({
+  ecosystem: "ubuntu",
+  installedVersion: "1.24.0-2ubuntu7.4",
+  constraints: [
+    { operator: "gte", version: "1.24.0" },
+    { operator: "lt", version: "1.24.0-2ubuntu7.5" },
+  ],
+});
+```
+
+RPM, APK, and Maven comparisons require a verified adapter. Without one, the
+package returns `unknown`; it never substitutes lexicographic or generic SemVer
+ordering for an ecosystem it cannot compare defensibly.
