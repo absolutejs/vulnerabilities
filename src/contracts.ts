@@ -120,6 +120,48 @@ export type AdvisorySeverity = Static<typeof AdvisorySeveritySchema>;
 
 export const VulnerabilityAdvisorySchema = Type.Object(
   {
+    affected: Type.Optional(
+      Type.Array(
+        Type.Object(
+          {
+            package: Type.Object(
+              {
+                ecosystem: IdentifierSchema,
+                name: IdentifierSchema,
+                purl: Type.Union([Type.Null(), IdentifierSchema]),
+              },
+              { additionalProperties: false },
+            ),
+            ranges: Type.Array(
+              Type.Object(
+                {
+                  events: Type.Array(
+                    Type.Object(
+                      {
+                        fixed: Type.Optional(IdentifierSchema),
+                        introduced: Type.Optional(IdentifierSchema),
+                        lastAffected: Type.Optional(IdentifierSchema),
+                        limit: Type.Optional(IdentifierSchema),
+                      },
+                      { additionalProperties: false },
+                    ),
+                  ),
+                  repository: Type.Union([Type.Null(), IdentifierSchema]),
+                  type: Type.Union([
+                    Type.Literal("ecosystem"),
+                    Type.Literal("git"),
+                    Type.Literal("semver"),
+                  ]),
+                },
+                { additionalProperties: false },
+              ),
+            ),
+            versions: Type.Array(IdentifierSchema, { uniqueItems: true }),
+          },
+          { additionalProperties: false },
+        ),
+      ),
+    ),
     aliases: Type.Array(IdentifierSchema, { minItems: 1, uniqueItems: true }),
     contract: Type.Literal(VULNERABILITY_CONTRACT_VERSION),
     details: Type.Union([Type.Null(), Type.String()]),

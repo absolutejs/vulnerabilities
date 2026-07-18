@@ -100,3 +100,27 @@ evaluateVersionConstraints({
 RPM, APK, and Maven comparisons require a verified adapter. Without one, the
 package returns `unknown`; it never substitutes lexicographic or generic SemVer
 ordering for an ecosystem it cannot compare defensibly.
+
+## Advisory feeds
+
+Feed adapters share cursor, snapshot, cache, and failure-isolation contracts.
+Applications can persist snapshots in their own storage while keeping provider
+fetching separate from policy and remediation logic.
+
+```ts
+import { createMemoryFeedStore, syncFeed } from "@absolutejs/vulnerabilities";
+
+const result = await syncFeed({
+  adapter,
+  maxStaleMs: 24 * 60 * 60 * 1_000,
+  store: createMemoryFeedStore(),
+});
+
+if (result.status === "stale") {
+  // Cached intelligence remains available, with the provider error attached.
+}
+```
+
+An adapter can replace a complete provider snapshot or incrementally merge
+records and deletions. `not_modified` responses require an existing cached
+snapshot, and provider failures never erase the last successful snapshot.

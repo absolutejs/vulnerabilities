@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 - 2026-07-18
+
+- Add provider-neutral feed adapters, cursors, snapshots, and stores.
+- Add incremental record merging, deletion handling, and deterministic ordering.
+- Preserve cached intelligence during provider failures and distinguish stale
+  snapshots from transient failures.
+- Extend advisory contracts with OSV-compatible affected packages and ranges.
+
 ## 0.3.0 - 2026-07-18
 
 - Add normalized Package URL component identities.
