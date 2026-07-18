@@ -5,6 +5,7 @@ export * from "./contracts";
 export * from "./correlation";
 export * from "./feeds";
 export * from "./identity";
+export * from "./risk";
 export * from "./stores";
 export * from "./versioning";
 export {

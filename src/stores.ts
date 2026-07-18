@@ -1,6 +1,7 @@
 import type {
   ManagedVulnerabilityFinding,
   VulnerabilityObservation,
+  VulnerabilityRiskAssessment,
 } from "./contracts";
 
 export type ManagedFindingFilter = {
@@ -9,6 +10,30 @@ export type ManagedFindingFilter = {
   severity?: ManagedVulnerabilityFinding["severity"];
   status?: ManagedVulnerabilityFinding["status"];
   tenantId: string;
+};
+
+export type VulnerabilityRiskAssessmentFilter = {
+  limit?: number;
+  priority?: VulnerabilityRiskAssessment["priority"];
+  tenantId: string;
+};
+
+export type VulnerabilityRiskAssessmentStore = {
+  get: (
+    tenantId: string,
+    findingId: string,
+  ) => Promise<VulnerabilityRiskAssessment | null>;
+  list: (
+    filter: VulnerabilityRiskAssessmentFilter,
+  ) => Promise<VulnerabilityRiskAssessment[]>;
+  save: (
+    tenantId: string,
+    assessment: VulnerabilityRiskAssessment,
+  ) => Promise<void>;
+  saveMany: (
+    tenantId: string,
+    assessments: readonly VulnerabilityRiskAssessment[],
+  ) => Promise<void>;
 };
 
 export type ManagedFindingStore = {
