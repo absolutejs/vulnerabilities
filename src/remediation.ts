@@ -188,12 +188,23 @@ export const verifyRemediationExecution = (input: {
       "Deployment evidence does not cover every remediation asset",
     );
   if (
-    input.deployments.some(
-      ({ activatedAt }) =>
-        time(activatedAt, "Deployment activatedAt") > Date.parse(observedAt),
+    input.plan.actions.some(
+      ({ assetId, toVersion }) =>
+        toVersion === null ||
+        input.deployments.find((deployment) => deployment.assetId === assetId)
+          ?.releaseId !== toVersion,
     )
   )
-    throw new Error("Deployment activation follows verification inventory");
+    throw new Error("Deployment release does not match the approved target");
+  if (
+    input.deployments.some(
+      ({ activatedAt }) =>
+        time(activatedAt, "Deployment activatedAt") <
+          Date.parse(input.execution.startedAt) ||
+        Date.parse(activatedAt) > Date.parse(observedAt),
+    )
+  )
+    throw new Error("Deployment activation is outside the execution window");
   const fixed = input.findings.filter(
     ({ lastSeenAt }) => Date.parse(lastSeenAt) < Date.parse(observedAt),
   );

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1 - 2026-07-18
+
+- Require the still-active deployment release to match every approved target.
+- Reject deployment evidence outside the remediation execution window.
+
 ## 0.8.0 - 2026-07-18
 
 - Add approval-gated remediation planning and execution lifecycle helpers.

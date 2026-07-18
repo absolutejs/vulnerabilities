@@ -185,4 +185,55 @@ describe("remediation lifecycle", () => {
       }),
     ).toThrow("requires deployment evidence");
   });
+
+  test("rejects verification after the approved release was rolled back", () => {
+    const draft = createRemediationPlan({
+      actions: [action],
+      createdAt: "2026-07-18T18:30:00Z",
+      createdBy: "security-team",
+      findings: [finding],
+      id: "plan-1",
+      rollbackSummary: "Restore release-1.",
+    });
+    const approved = approveRemediationPlan({
+      approvedAt: "2026-07-18T19:00:00Z",
+      approvedBy: "operator-1",
+      findings: [finding],
+      plan: draft,
+    });
+    const started = startRemediationExecution({
+      executionId: "execution-1",
+      findings: approved.findings,
+      plan: approved.plan,
+      startedAt: "2026-07-18T19:30:00Z",
+    });
+    const completed = completeRemediationExecution({
+      completedAt: "2026-07-18T20:00:00Z",
+      evidence: [deploymentEvidence],
+      execution: started.execution,
+      message: null,
+      plan: started.plan,
+      status: "succeeded",
+    });
+
+    expect(() =>
+      verifyRemediationExecution({
+        deployments: [
+          {
+            activatedAt: "2026-07-18T20:30:00Z",
+            assetId: finding.assetId,
+            releaseId: "release-1",
+          },
+        ],
+        evidence: [
+          { ...deploymentEvidence, collectedAt: "2026-07-18T21:00:00Z" },
+        ],
+        execution: completed.execution,
+        findings: started.findings,
+        observedAt: "2026-07-18T21:00:00Z",
+        plan: completed.plan,
+        verificationId: "verification-rollback",
+      }),
+    ).toThrow("does not match the approved target");
+  });
 });
