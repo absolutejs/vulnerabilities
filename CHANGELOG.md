@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-07-18
+
+- Add deterministic alerts for emergency findings and remediation SLAs.
+- Detect approaching deadlines, overdue verification, and expiring VEX decisions.
+- Detect failed or stale vulnerability feeds and workers.
+
 ## 0.8.1 - 2026-07-18
 
 - Require the still-active deployment release to match every approved target.
