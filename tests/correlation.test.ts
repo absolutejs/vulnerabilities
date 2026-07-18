@@ -107,6 +107,13 @@ describe("vulnerability inventory correlation", () => {
       "CVE-2026-0001",
       "USN-9999-1",
     ]);
+    const duplicated = correlateVulnerabilityInventory({
+      advisories: [advisory, advisory],
+      asset,
+      components: [component("1.24.0-2ubuntu7.4")],
+      observedAt: timestamp,
+    });
+    expect(duplicated.observations).toHaveLength(1);
   });
 
   test("does not turn unknown version comparisons into findings", () => {

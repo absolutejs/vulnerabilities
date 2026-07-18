@@ -210,6 +210,7 @@ const observationId = (
         asset.tenantId,
         asset.id,
         componentIdentityKey(component.identity),
+        advisory.source.name,
         advisory.id,
         advisory.modifiedAt,
       ]),
@@ -345,10 +346,15 @@ export const correlateVulnerabilityInventory = (input: {
   const active = [...findings.values()].sort((left, right) =>
     left.id.localeCompare(right.id),
   );
+  const uniqueObservations = [
+    ...new Map(
+      observations.map((observation) => [observation.id, observation]),
+    ).values(),
+  ].sort((left, right) => left.id.localeCompare(right.id));
   return {
     evaluations,
     findings: active,
-    observations,
+    observations: uniqueObservations,
     resolved,
     upserts: [...active, ...resolved],
   };
