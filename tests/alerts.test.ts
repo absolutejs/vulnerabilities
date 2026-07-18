@@ -57,6 +57,46 @@ describe("vulnerability alerts", () => {
     );
   });
 
+  test("keeps finding alert identities stable when a plan is attached", () => {
+    const withoutPlan = evaluateVulnerabilityAlerts({
+      findings: [finding],
+      now,
+      riskAssessments: [risk],
+    });
+    const draft: RemediationPlan = {
+      actions: [
+        {
+          assetId: finding.assetId,
+          componentId: finding.componentId,
+          fromVersion: "1.0.0",
+          id: "action-draft",
+          kind: "package_upgrade",
+          requiresRestart: false,
+          toVersion: "1.0.1",
+        },
+      ],
+      approvedAt: null,
+      approvedBy: null,
+      contract: 1,
+      createdAt: now,
+      createdBy: "owner-1",
+      findingIds: [finding.id],
+      id: "plan-draft",
+      rollbackSummary: "Rollback release",
+      status: "draft",
+    };
+    const withPlan = evaluateVulnerabilityAlerts({
+      findings: [finding],
+      now,
+      plans: [draft],
+      riskAssessments: [risk],
+    });
+    for (const kind of ["emergency_finding", "remediation_deadline"] as const)
+      expect(withPlan.find((entry) => entry.kind === kind)?.id).toBe(
+        withoutPlan.find((entry) => entry.kind === kind)?.id,
+      );
+  });
+
   test("alerts on approved execution and successful verification SLAs", () => {
     const approved: RemediationPlan = {
       actions: [

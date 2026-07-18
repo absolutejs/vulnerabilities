@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1 - 2026-07-18
+
+- Keep finding alert identities stable when remediation plans are attached.
+
 ## 0.9.0 - 2026-07-18
 
 - Add deterministic alerts for emergency findings and remediation SLAs.

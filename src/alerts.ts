@@ -111,9 +111,7 @@ const alert = (
   ...identity([
     input.tenantId,
     input.kind,
-    input.findingId,
-    input.planId,
-    input.sourceId,
+    input.findingId ?? input.planId ?? input.sourceId,
   ]),
 });
 
