@@ -52,6 +52,25 @@ Scanner execution, scheduling, persistence, remediation approvals, and user
 interfaces remain application concerns. This package owns the contracts and
 decisions those applications should not hand-roll.
 
+Inventory correlation is ecosystem-aware and fails closed when a version
+scheme cannot be compared. `osv.ecosystem` on a component preserves vendor
+release context such as `Ubuntu:24.04` while the component purl remains a
+standard `pkg:deb` identifier.
+
+```ts
+import { correlateVulnerabilityInventory } from "@absolutejs/vulnerabilities";
+
+const result = correlateVulnerabilityInventory({
+  advisories,
+  asset,
+  components,
+  existingFindings,
+  observedAt: new Date().toISOString(),
+});
+
+await findingStore.saveMany(result.upserts);
+```
+
 Managed finding identities are deterministic and scanner-independent:
 
 ```ts

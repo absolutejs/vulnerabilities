@@ -65,8 +65,11 @@ const ecosystemAliases: Record<string, VersionScheme> = {
   ubuntu: "debian",
 };
 
-export const versionSchemeForEcosystem = (ecosystem: string): VersionScheme =>
-  ecosystemAliases[ecosystem.trim().toLowerCase()] ?? "unknown";
+export const versionSchemeForEcosystem = (ecosystem: string): VersionScheme => {
+  const normalized = ecosystem.trim().toLowerCase();
+  const family = normalized.split(":", 1)[0] ?? normalized;
+  return ecosystemAliases[normalized] ?? ecosystemAliases[family] ?? "unknown";
+};
 
 type DebianVersion = {
   epoch: bigint;

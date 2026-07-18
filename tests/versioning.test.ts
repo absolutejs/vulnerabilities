@@ -20,6 +20,11 @@ describe("ecosystem mapping", () => {
     expect(versionSchemeForEcosystem("Alpine")).toBe("apk");
     expect(versionSchemeForEcosystem("unregistered")).toBe("unknown");
   });
+
+  test("recognizes OSV distribution release ecosystems", () => {
+    expect(versionSchemeForEcosystem("Ubuntu:24.04:LTS")).toBe("debian");
+    expect(versionSchemeForEcosystem("Alpine:v3.20")).toBe("apk");
+  });
 });
 
 describe("Debian version ordering", () => {
