@@ -57,6 +57,28 @@ export type FeedSyncResult<T> = {
   status: "failed" | "not_modified" | "stale" | "updated";
 };
 
+export type FeedSyncRun = {
+  completedAt: string;
+  error: string | null;
+  feedId: string;
+  id: string;
+  records: number;
+  revision: string | null;
+  startedAt: string;
+  status: FeedSyncResult<unknown>["status"];
+};
+
+export type FeedSyncRunFilter = {
+  feedId?: string;
+  limit?: number;
+  status?: FeedSyncRun["status"];
+};
+
+export type FeedSyncRunStore = {
+  append: (run: FeedSyncRun) => Promise<void>;
+  list: (filter?: FeedSyncRunFilter) => Promise<FeedSyncRun[]>;
+};
+
 const requiredText = (label: string, value: string) => {
   const normalized = value.trim();
   if (normalized.length === 0) throw new Error(`${label} is required`);
@@ -188,6 +210,39 @@ export const syncFeed = async <T>(input: {
         : "stale",
     };
   }
+};
+
+export const syncFeedRecorded = async <T>(input: {
+  adapter: FeedAdapter<T>;
+  clock?: () => Date;
+  history: FeedSyncRunStore;
+  maxStaleMs: number;
+  now?: number;
+  runId?: string;
+  signal?: AbortSignal;
+  store: FeedSnapshotStore<T>;
+}) => {
+  const clock = input.clock ?? (() => new Date());
+  const startedAt = clock().toISOString();
+  const result = await syncFeed({
+    adapter: input.adapter,
+    maxStaleMs: input.maxStaleMs,
+    ...(input.now === undefined ? {} : { now: input.now }),
+    ...(input.signal ? { signal: input.signal } : {}),
+    store: input.store,
+  });
+  const run: FeedSyncRun = {
+    completedAt: clock().toISOString(),
+    error: result.error,
+    feedId: normalizeFeedDescriptor(input.adapter.descriptor).id,
+    id: input.runId ?? crypto.randomUUID(),
+    records: result.snapshot?.records.length ?? 0,
+    revision: result.snapshot?.revision ?? null,
+    startedAt,
+    status: result.status,
+  };
+  await input.history.append(run);
+  return { result, run };
 };
 
 export const createMemoryFeedStore = <T>(

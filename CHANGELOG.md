@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-07-18
+
+- Add provider-neutral feed sync-history contracts and recorded synchronization.
+- Add managed-finding persistence contracts with tenant-scoped filters.
+- Keep database adapters replaceable without changing orchestration code.
+
 ## 0.4.0 - 2026-07-18
 
 - Add provider-neutral feed adapters, cursors, snapshots, and stores.

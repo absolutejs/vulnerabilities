@@ -4,6 +4,7 @@ import { ISO_TIMESTAMP_PATTERN } from "./primitives";
 export * from "./contracts";
 export * from "./feeds";
 export * from "./identity";
+export * from "./stores";
 export * from "./versioning";
 export {
   ISO_TIMESTAMP_PATTERN,

@@ -124,3 +124,8 @@ if (result.status === "stale") {
 An adapter can replace a complete provider snapshot or incrementally merge
 records and deletions. `not_modified` responses require an existing cached
 snapshot, and provider failures never erase the last successful snapshot.
+
+Production stores remain replaceable through the `FeedSnapshotStore`,
+`FeedSyncRunStore`, and `ManagedFindingStore` contracts. Recorded refreshes
+persist status, errors, revisions, timestamps, and record counts without
+coupling feed orchestration to a database driver.
