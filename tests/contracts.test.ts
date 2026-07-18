@@ -4,6 +4,7 @@ import {
   ManagedVulnerabilityFindingSchema,
   RemediationExecutionSchema,
   RemediationPlanSchema,
+  RemediationVerificationSchema,
   VULNERABILITY_CONTRACT_VERSION,
   VexDecisionSchema,
   VulnerabilityAdvisorySchema,
@@ -195,6 +196,35 @@ const fixtures = [
       planId: "plan-1",
       startedAt: timestamp,
       status: "running",
+    },
+  },
+  {
+    schema: RemediationVerificationSchema,
+    value: {
+      contract: VULNERABILITY_CONTRACT_VERSION,
+      deployments: [
+        {
+          activatedAt: timestamp,
+          assetId: "production-web-1",
+          releaseId: "release-2",
+        },
+      ],
+      evidence: [
+        {
+          collectedAt: timestamp,
+          digest: null,
+          kind: "verification",
+          source: "absolutejs-inventory",
+          uri: "inventory://production-web-1/release-2",
+        },
+      ],
+      executionId: "execution-1",
+      fixedFindingIds: [findingId],
+      id: "verification-1",
+      observedAt: timestamp,
+      planId: "plan-1",
+      remainingFindingIds: [],
+      status: "passed",
     },
   },
 ] as const;

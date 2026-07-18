@@ -196,4 +196,23 @@ describe("vulnerability inventory correlation", () => {
     }).findings[0]!;
     expect(reopened.status).toBe("reopened");
   });
+
+  test("holds remediating findings open for deployment verification", () => {
+    const active = correlateVulnerabilityInventory({
+      advisories: [advisory],
+      asset,
+      components: [component("1.24.0-2ubuntu7.4")],
+      observedAt: timestamp,
+    }).findings[0]!;
+    const result = correlateVulnerabilityInventory({
+      advisories: [],
+      asset,
+      components: [],
+      existingFindings: [{ ...active, status: "remediating" }],
+      observedAt: "2026-07-19T20:00:00Z",
+    });
+
+    expect(result.resolved).toEqual([]);
+    expect(result.verificationPending[0]?.status).toBe("remediating");
+  });
 });

@@ -436,3 +436,32 @@ export const RemediationExecutionSchema = Type.Object(
   { additionalProperties: false },
 );
 export type RemediationExecution = Static<typeof RemediationExecutionSchema>;
+
+export const RemediationDeploymentSchema = Type.Object(
+  {
+    activatedAt: TimestampSchema,
+    assetId: IdentifierSchema,
+    releaseId: IdentifierSchema,
+  },
+  { additionalProperties: false },
+);
+export type RemediationDeployment = Static<typeof RemediationDeploymentSchema>;
+
+export const RemediationVerificationSchema = Type.Object(
+  {
+    contract: Type.Literal(VULNERABILITY_CONTRACT_VERSION),
+    deployments: Type.Array(RemediationDeploymentSchema, { minItems: 1 }),
+    evidence: Type.Array(EvidenceReferenceSchema, { minItems: 1 }),
+    executionId: IdentifierSchema,
+    fixedFindingIds: Type.Array(IdentifierSchema, { uniqueItems: true }),
+    id: IdentifierSchema,
+    observedAt: TimestampSchema,
+    planId: IdentifierSchema,
+    remainingFindingIds: Type.Array(IdentifierSchema, { uniqueItems: true }),
+    status: Type.Union([Type.Literal("passed"), Type.Literal("failed")]),
+  },
+  { additionalProperties: false },
+);
+export type RemediationVerification = Static<
+  typeof RemediationVerificationSchema
+>;

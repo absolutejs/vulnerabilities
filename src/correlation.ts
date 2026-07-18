@@ -24,6 +24,7 @@ export type VulnerabilityCorrelationResult = {
   observations: VulnerabilityObservation[];
   resolved: ManagedVulnerabilityFinding[];
   upserts: ManagedVulnerabilityFinding[];
+  verificationPending: ManagedVulnerabilityFinding[];
 };
 
 const severityOrder = {
@@ -333,14 +334,22 @@ export const correlateVulnerabilityInventory = (input: {
     }
   }
   const activeIds = new Set(findings.keys());
-  const resolved = [...existing.values()]
+  const absent = [...existing.values()].filter(
+    (finding) =>
+      finding.tenantId === input.asset.tenantId &&
+      finding.assetId === input.asset.id &&
+      !activeIds.has(finding.id) &&
+      !inconclusiveFindingIds.has(finding.id) &&
+      finding.status !== "fixed",
+  );
+  const verificationPending = absent.filter(
+    ({ status }) =>
+      status === "remediation_planned" || status === "remediating",
+  );
+  const resolved = absent
     .filter(
-      (finding) =>
-        finding.tenantId === input.asset.tenantId &&
-        finding.assetId === input.asset.id &&
-        !activeIds.has(finding.id) &&
-        !inconclusiveFindingIds.has(finding.id) &&
-        finding.status !== "fixed",
+      ({ status }) =>
+        status !== "remediation_planned" && status !== "remediating",
     )
     .map((finding) => ({ ...finding, status: "fixed" as const }));
   const active = [...findings.values()].sort((left, right) =>
@@ -356,6 +365,7 @@ export const correlateVulnerabilityInventory = (input: {
     findings: active,
     observations: uniqueObservations,
     resolved,
-    upserts: [...active, ...resolved],
+    upserts: [...active, ...resolved, ...verificationPending],
+    verificationPending,
   };
 };

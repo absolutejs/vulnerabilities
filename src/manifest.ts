@@ -10,6 +10,7 @@ export const manifest = defineManifest<Record<string, never>>()({
       "enforce vulnerability policy",
       "collect Debian host security inventory",
       "produce audit-ready vulnerability evidence",
+      "verify vulnerability remediation after deployment",
     ],
     keywords: [
       "vulnerabilities",
@@ -18,6 +19,7 @@ export const manifest = defineManifest<Record<string, never>>()({
       "SBOM",
       "host-inventory",
       "security-policy",
+      "remediation",
     ],
     protocols: ["Grype JSON", "Debian package inventory"],
   },
@@ -25,7 +27,7 @@ export const manifest = defineManifest<Record<string, never>>()({
     accent: "#dc2626",
     category: "operations",
     description:
-      "Scanner-neutral vulnerability normalization, policy gates, Debian host inventory, and audit-ready evidence without discarding distribution package versions.",
+      "Scanner-neutral vulnerability normalization, remediation verification, Debian host inventory, and audit-ready evidence without discarding distribution package versions.",
     docsUrl: "https://github.com/absolutejs/vulnerabilities",
     name: "@absolutejs/vulnerabilities",
     tagline:

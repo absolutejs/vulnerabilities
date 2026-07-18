@@ -6,6 +6,7 @@ export * from "./correlation";
 export * from "./feeds";
 export * from "./identity";
 export * from "./risk";
+export * from "./remediation";
 export * from "./stores";
 export * from "./versioning";
 export * from "./vex";

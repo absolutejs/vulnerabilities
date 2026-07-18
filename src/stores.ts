@@ -1,10 +1,49 @@
 import type {
   ManagedVulnerabilityFinding,
+  RemediationExecution,
+  RemediationPlan,
+  RemediationVerification,
   VulnerabilityObservation,
   VulnerabilityRiskAssessment,
   VexDecision,
   VexFindingApplication,
 } from "./contracts";
+
+export type RemediationPlanFilter = {
+  limit?: number;
+  status?: RemediationPlan["status"];
+  tenantId: string;
+};
+
+export type RemediationPlanStore = {
+  get: (tenantId: string, planId: string) => Promise<RemediationPlan | null>;
+  list: (filter: RemediationPlanFilter) => Promise<RemediationPlan[]>;
+  save: (tenantId: string, plan: RemediationPlan) => Promise<void>;
+};
+
+export type RemediationExecutionStore = {
+  get: (
+    tenantId: string,
+    executionId: string,
+  ) => Promise<RemediationExecution | null>;
+  list: (tenantId: string, planId: string) => Promise<RemediationExecution[]>;
+  save: (tenantId: string, execution: RemediationExecution) => Promise<void>;
+};
+
+export type RemediationVerificationStore = {
+  get: (
+    tenantId: string,
+    verificationId: string,
+  ) => Promise<RemediationVerification | null>;
+  list: (
+    tenantId: string,
+    executionId: string,
+  ) => Promise<RemediationVerification[]>;
+  save: (
+    tenantId: string,
+    verification: RemediationVerification,
+  ) => Promise<void>;
+};
 
 export type ManagedFindingFilter = {
   assetId?: string;

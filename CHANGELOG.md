@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 - 2026-07-18
+
+- Add approval-gated remediation planning and execution lifecycle helpers.
+- Require deployment evidence plus later inventory absence before closing findings.
+- Add remediation plan, execution, and verification persistence contracts.
+- Hold remediating findings open until verification completes.
+
 ## 0.5.0 - 2026-07-18
 
 - Add provider-neutral feed sync-history contracts and recorded synchronization.

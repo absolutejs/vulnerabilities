@@ -52,6 +52,11 @@ Scanner execution, scheduling, persistence, remediation approvals, and user
 interfaces remain application concerns. This package owns the contracts and
 decisions those applications should not hand-roll.
 
+The remediation lifecycle keeps deployment success separate from security
+verification. A successful execution requires deployment evidence, and a
+finding becomes `fixed` only after a later inventory observation proves it is
+absent. Remediating findings remain open while that verification is pending.
+
 Inventory correlation is ecosystem-aware and fails closed when a version
 scheme cannot be compared. `osv.ecosystem` on a component preserves vendor
 release context such as `Ubuntu:24.04` while the component purl remains a
