@@ -1,4 +1,7 @@
-import type { ManagedVulnerabilityFinding } from "./contracts";
+import type {
+  ManagedVulnerabilityFinding,
+  VulnerabilityObservation,
+} from "./contracts";
 
 export type ManagedFindingFilter = {
   assetId?: string;
@@ -18,4 +21,29 @@ export type ManagedFindingStore = {
   ) => Promise<ManagedVulnerabilityFinding[]>;
   save: (finding: ManagedVulnerabilityFinding) => Promise<void>;
   saveMany: (findings: readonly ManagedVulnerabilityFinding[]) => Promise<void>;
+};
+
+export type VulnerabilityObservationFilter = {
+  assetId?: string;
+  componentId?: string;
+  limit?: number;
+  tenantId: string;
+};
+
+export type VulnerabilityObservationStore = {
+  get: (
+    tenantId: string,
+    observationId: string,
+  ) => Promise<VulnerabilityObservation | null>;
+  list: (
+    filter: VulnerabilityObservationFilter,
+  ) => Promise<VulnerabilityObservation[]>;
+  save: (
+    tenantId: string,
+    observation: VulnerabilityObservation,
+  ) => Promise<void>;
+  saveMany: (
+    tenantId: string,
+    observations: readonly VulnerabilityObservation[],
+  ) => Promise<void>;
 };
