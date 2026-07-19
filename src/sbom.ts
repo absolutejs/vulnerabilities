@@ -248,7 +248,7 @@ export const generateCycloneDxSbom = async (input: {
           {
             name: "@absolutejs/vulnerabilities",
             type: "application",
-            version: "0.12.0",
+            version: "0.12.1",
           },
         ],
       },

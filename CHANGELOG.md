@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.1 - 2026-07-19
+
+- Keep all JavaScript entrypoints and the verification CLI at their declared
+  package export paths when building the expanded witness release.
+
 ## 0.12.0 - 2026-07-19
 
 - Add independently signed transparency checkpoints with pinned witness-key
