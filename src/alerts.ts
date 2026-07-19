@@ -14,6 +14,11 @@ const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 
 export type VulnerabilityAlertKind =
+  | "evidence_checkpoint_stale"
+  | "evidence_witness_backup_stale"
+  | "evidence_witness_key_rotation_due"
+  | "evidence_witness_quorum_failed"
+  | "evidence_witness_unhealthy"
   | "emergency_finding"
   | "intelligence_failed"
   | "intelligence_stale"
@@ -56,6 +61,21 @@ export type VulnerabilityIntelligenceHealth = {
   lastObservedAt: string;
   lastSucceededAt: string | null;
   status: "failed" | "healthy" | "unknown";
+  tenantId: string;
+};
+
+export type VulnerabilityEvidenceOperationalCondition = {
+  body: string;
+  dueAt: string | null;
+  kind:
+    | "evidence_checkpoint_stale"
+    | "evidence_witness_backup_stale"
+    | "evidence_witness_key_rotation_due"
+    | "evidence_witness_quorum_failed"
+    | "evidence_witness_unhealthy";
+  observedAt: string;
+  severity: VulnerabilityAlertSeverity;
+  sourceId: string;
   tenantId: string;
 };
 
@@ -117,6 +137,7 @@ export const DEFAULT_VULNERABILITY_ALERT_CONFIGURATION = {
 
 export type VulnerabilityAlertEvaluationInput = {
   decisions?: readonly VexDecision[];
+  evidenceConditions?: readonly VulnerabilityEvidenceOperationalCondition[];
   executions?: readonly RemediationExecution[];
   findings: readonly ManagedVulnerabilityFinding[];
   health?: readonly VulnerabilityIntelligenceHealth[];
@@ -495,6 +516,49 @@ export const evaluateVulnerabilityAlerts = (
               : "Vulnerability intelligence is stale",
         }),
       );
+  }
+
+  const evidenceTitles: Record<
+    VulnerabilityEvidenceOperationalCondition["kind"],
+    string
+  > = {
+    evidence_checkpoint_stale: "Evidence witness checkpoint is stale",
+    evidence_witness_backup_stale:
+      "Evidence witness backup verification is stale",
+    evidence_witness_key_rotation_due: "Evidence witness key rotation is due",
+    evidence_witness_quorum_failed: "Evidence witness quorum is unavailable",
+    evidence_witness_unhealthy: "Evidence witness is unhealthy",
+  };
+  for (const condition of input.evidenceConditions ?? []) {
+    timestamp(condition.observedAt, "Evidence condition observedAt");
+    if (!condition.sourceId.trim())
+      throw new Error("Evidence condition sourceId is required");
+    if (!condition.tenantId.trim())
+      throw new Error("Evidence condition tenantId is required");
+    if (!condition.body.trim())
+      throw new Error("Evidence condition body is required");
+    const dueAt = condition.dueAt
+      ? new Date(
+          timestamp(condition.dueAt, "Evidence condition dueAt"),
+        ).toISOString()
+      : null;
+    alerts.push(
+      alert({
+        assetId: null,
+        body: condition.body,
+        dueAt,
+        findingId: null,
+        kind: condition.kind,
+        observedAt: new Date(
+          timestamp(condition.observedAt, "Evidence condition observedAt"),
+        ).toISOString(),
+        planId: null,
+        severity: condition.severity,
+        sourceId: condition.sourceId,
+        tenantId: condition.tenantId,
+        title: evidenceTitles[condition.kind],
+      }),
+    );
   }
 
   return alerts.sort(

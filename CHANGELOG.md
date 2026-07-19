@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.0 - 2026-07-19
+
+- Add deterministic operational alerts for unhealthy evidence witnesses,
+  failed quorum, stale checkpoints, overdue key rotation, and stale backup
+  verification.
+- Route evidence control-plane conditions through the existing durable
+  vulnerability incident, escalation, and notification lifecycle.
+
 ## 0.13.0 - 2026-07-19
 
 - Sign witness receipts from an exact transparency head and size without

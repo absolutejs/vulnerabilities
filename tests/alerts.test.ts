@@ -306,6 +306,59 @@ describe("vulnerability alerts", () => {
     ]);
   });
 
+  test("turns active evidence posture failures into stable admin alerts", () => {
+    const condition = {
+      body: "Witness quorum has 1/2 trusted receipts.",
+      dueAt: null,
+      kind: "evidence_witness_quorum_failed" as const,
+      observedAt: now,
+      severity: "critical" as const,
+      sourceId: "evidence-witness-quorum",
+      tenantId: "control-plane",
+    };
+    const first = evaluateVulnerabilityAlerts({
+      evidenceConditions: [condition],
+      findings: [],
+      now,
+    });
+    const next = evaluateVulnerabilityAlerts({
+      evidenceConditions: [
+        { ...condition, observedAt: "2026-07-18T12:01:00.000Z" },
+      ],
+      findings: [],
+      now: "2026-07-18T12:01:00.000Z",
+    });
+
+    expect(first).toHaveLength(1);
+    expect(first[0]?.id).toBe(next[0]?.id);
+    expect(first[0]).toMatchObject({
+      assetId: null,
+      kind: "evidence_witness_quorum_failed",
+      sourceId: "evidence-witness-quorum",
+      title: "Evidence witness quorum is unavailable",
+    });
+  });
+
+  test("rejects evidence posture conditions without durable identities", () => {
+    expect(() =>
+      evaluateVulnerabilityAlerts({
+        evidenceConditions: [
+          {
+            body: "Missing backup proof",
+            dueAt: null,
+            kind: "evidence_witness_backup_stale",
+            observedAt: now,
+            severity: "critical",
+            sourceId: "",
+            tenantId: "control-plane",
+          },
+        ],
+        findings: [],
+        now,
+      }),
+    ).toThrow("Evidence condition sourceId is required");
+  });
+
   test("rejects invalid timestamps and policy durations", () => {
     expect(() =>
       evaluateVulnerabilityAlerts({ findings: [], now: "not-a-time" }),
