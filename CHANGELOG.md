@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.4 - 2026-07-18
+
+- Validate CycloneDX 1.6 structure, npm Package URLs, timestamps, component
+  identity, and uniqueness before correlation or attestation signing.
+
 ## 0.10.3 - 2026-07-18
 
 - Use the immutable release ID as the application component version so runtime

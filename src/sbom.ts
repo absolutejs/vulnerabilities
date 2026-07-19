@@ -28,6 +28,101 @@ export type CycloneDxSbom = {
   version: 1;
 };
 
+const record = (value: unknown, label: string) => {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error(`${label} must be an object`);
+
+  return value as Record<string, unknown>;
+};
+
+const parseComponent = (value: unknown, label: string): CycloneDxComponent => {
+  const input = record(value, label);
+  const type = input.type;
+  if (type !== "application" && type !== "library")
+    throw new Error(`${label} type is invalid`);
+  for (const field of ["bom-ref", "name", "purl", "version"] as const)
+    if (typeof input[field] !== "string" || !input[field].trim())
+      throw new Error(`${label} ${field} is required`);
+  if (!(input.purl as string).startsWith("pkg:npm/"))
+    throw new Error(`${label} purl must identify an npm package`);
+  if (input.group !== undefined && typeof input.group !== "string")
+    throw new Error(`${label} group must be a string`);
+
+  return {
+    "bom-ref": input["bom-ref"] as string,
+    ...(typeof input.group === "string" ? { group: input.group } : {}),
+    name: input.name as string,
+    purl: input.purl as string,
+    type,
+    version: input.version as string,
+  };
+};
+
+export const parseCycloneDxSbom = (value: unknown): CycloneDxSbom => {
+  const input = record(value, "CycloneDX SBOM");
+  if (
+    input.bomFormat !== "CycloneDX" ||
+    input.specVersion !== "1.6" ||
+    input.version !== 1
+  )
+    throw new Error("CycloneDX SBOM contract is unsupported");
+  if (
+    typeof input.serialNumber !== "string" ||
+    !/^urn:uuid:[0-9a-f-]{36}$/iu.test(input.serialNumber)
+  )
+    throw new Error("CycloneDX SBOM serialNumber is invalid");
+  if (!Array.isArray(input.components))
+    throw new Error("CycloneDX SBOM components must be an array");
+  const components = input.components.map((entry, index) =>
+    parseComponent(entry, `CycloneDX component ${index}`),
+  );
+  if (new Set(components.map(({ purl }) => purl)).size !== components.length)
+    throw new Error("CycloneDX SBOM component purls must be unique");
+  const metadata = record(input.metadata, "CycloneDX metadata");
+  if (
+    typeof metadata.timestamp !== "string" ||
+    Number.isNaN(Date.parse(metadata.timestamp))
+  )
+    throw new Error("CycloneDX metadata timestamp is invalid");
+  const tools = record(metadata.tools, "CycloneDX metadata tools");
+  if (!Array.isArray(tools.components))
+    throw new Error("CycloneDX metadata tools components must be an array");
+
+  return {
+    bomFormat: "CycloneDX",
+    components,
+    metadata: {
+      component: parseComponent(
+        metadata.component,
+        "CycloneDX metadata component",
+      ),
+      timestamp: metadata.timestamp,
+      tools: {
+        components: tools.components.map((entry, index) => {
+          const tool = record(entry, `CycloneDX tool ${index}`);
+          if (
+            tool.type !== "application" ||
+            typeof tool.name !== "string" ||
+            !tool.name.trim() ||
+            typeof tool.version !== "string" ||
+            !tool.version.trim()
+          )
+            throw new Error(`CycloneDX tool ${index} is invalid`);
+
+          return {
+            name: tool.name,
+            type: "application" as const,
+            version: tool.version,
+          };
+        }),
+      },
+    },
+    serialNumber: input.serialNumber as `urn:uuid:${string}`,
+    specVersion: "1.6",
+    version: 1,
+  };
+};
+
 type PackageManifest = { name?: string; version?: string };
 
 const canonical = (value: unknown): string => {
@@ -167,26 +262,32 @@ export const generateCycloneDxSbom = async (input: {
 export const cycloneDxSbomToInventory = (input: {
   asset: Omit<VulnerabilityAsset, "contract">;
   sbom: CycloneDxSbom;
-}): { asset: VulnerabilityAsset; components: VulnerabilityComponent[] } => ({
-  asset: { ...input.asset, contract: VULNERABILITY_CONTRACT_VERSION },
-  components: input.sbom.components.map((entry) => {
-    const fullName = entry.group ? `${entry.group}/${entry.name}` : entry.name;
-    return {
-      contract: VULNERABILITY_CONTRACT_VERSION,
-      id: `component_${sha256(entry.purl)}`,
-      identity: {
-        ecosystem: "npm",
-        name: fullName,
-        namespace: entry.group?.replace(/^@/, "") ?? null,
-        purl: entry.purl,
-        version: entry.version,
-      },
-      licenses: [],
-      locations: ["node_modules"],
-      properties: { "inventory.source": "cyclonedx-runtime" },
-    };
-  }),
-});
+}): { asset: VulnerabilityAsset; components: VulnerabilityComponent[] } => {
+  const sbom = parseCycloneDxSbom(input.sbom);
+
+  return {
+    asset: { ...input.asset, contract: VULNERABILITY_CONTRACT_VERSION },
+    components: sbom.components.map((entry) => {
+      const fullName = entry.group
+        ? `${entry.group}/${entry.name}`
+        : entry.name;
+      return {
+        contract: VULNERABILITY_CONTRACT_VERSION,
+        id: `component_${sha256(entry.purl)}`,
+        identity: {
+          ecosystem: "npm",
+          name: fullName,
+          namespace: entry.group?.replace(/^@/, "") ?? null,
+          purl: entry.purl,
+          version: entry.version,
+        },
+        licenses: [],
+        locations: ["node_modules"],
+        properties: { "inventory.source": "cyclonedx-runtime" },
+      };
+    }),
+  };
+};
 
 export type SignedSbomAttestation = {
   algorithm: "HS256";
@@ -210,19 +311,20 @@ export const signSbomAttestation = (input: {
   if (Buffer.byteLength(input.secret) < 32)
     throw new Error("SBOM signing secret must be at least 32 bytes");
   const issuedAt = input.issuedAt ?? new Date().toISOString();
+  const sbom = parseCycloneDxSbom(input.sbom);
   const payload = {
     algorithm: "HS256" as const,
     issuedAt,
     keyId: input.keyId,
     projectId: input.projectId,
     releaseId: input.releaseId,
-    sbom: input.sbom,
+    sbom,
   };
   const bytes = canonical(payload);
 
   return {
     ...payload,
-    digest: `sha256:${sha256(canonical(input.sbom))}`,
+    digest: `sha256:${sha256(canonical(sbom))}`,
     signature: createHmac("sha256", input.secret)
       .update(bytes)
       .digest("base64url"),

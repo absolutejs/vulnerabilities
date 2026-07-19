@@ -11,6 +11,7 @@ import {
 import {
   cycloneDxSbomToInventory,
   generateCycloneDxSbom,
+  parseCycloneDxSbom,
   signSbomAttestation,
   verifySbomAttestation,
 } from "../src/sbom";
@@ -84,6 +85,9 @@ describe("runtime CycloneDX SBOM", () => {
         "a-secure-sbom-signing-secret-with-32-bytes",
       ),
     ).toBe(false);
+    expect(() =>
+      parseCycloneDxSbom({ ...sbom, components: [{ name: "forged" }] }),
+    ).toThrow("type is invalid");
   });
 });
 
