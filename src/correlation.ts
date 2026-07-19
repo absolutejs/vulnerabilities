@@ -4,6 +4,7 @@ import type {
   VulnerabilityAdvisory,
   VulnerabilityAsset,
   VulnerabilityComponent,
+  EvidenceReference,
   VulnerabilityObservation,
 } from "./contracts";
 import { canonicalVulnerabilityIds, createStableFindingId } from "./identity";
@@ -239,10 +240,18 @@ export const correlateVulnerabilityInventory = (input: {
   asset: VulnerabilityAsset;
   components: readonly VulnerabilityComponent[];
   existingFindings?: readonly ManagedVulnerabilityFinding[];
+  inventoryEvidence?: EvidenceReference;
   observedAt: string;
 }): VulnerabilityCorrelationResult => {
   if (!Number.isFinite(Date.parse(input.observedAt)))
     throw new Error("Vulnerability correlation observedAt must be a timestamp");
+  if (
+    input.inventoryEvidence?.kind !== undefined &&
+    input.inventoryEvidence.kind !== "inventory"
+  )
+    throw new Error(
+      "Vulnerability inventory evidence must have kind inventory",
+    );
   const existing = new Map(
     (input.existingFindings ?? []).map((finding) => [finding.id, finding]),
   );
@@ -286,7 +295,7 @@ export const correlateVulnerabilityInventory = (input: {
             source: advisory.source.name,
             uri: advisory.source.url,
           },
-          {
+          input.inventoryEvidence ?? {
             collectedAt: input.observedAt,
             digest: null,
             kind: "inventory",

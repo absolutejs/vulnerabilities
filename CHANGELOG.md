@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1 - 2026-07-18
+
+- Allow inventory correlation observations to retain an immutable provider URI
+  and SHA-256 evidence digest.
+
 ## 0.10.0 - 2026-07-18
 
 - Add a validated alert configuration contract for evaluation SLAs, escalation

@@ -89,6 +89,13 @@ describe("vulnerability inventory correlation", () => {
       advisories: [advisory],
       asset,
       components: [component("1.24.0-2ubuntu7.4")],
+      inventoryEvidence: {
+        collectedAt: timestamp,
+        digest: `sha256:${"a".repeat(64)}`,
+        kind: "inventory",
+        source: "paas-release-inventory",
+        uri: "inventory://deployment-1/release-1",
+      },
       observedAt: timestamp,
     });
     const second = correlateVulnerabilityInventory({
@@ -99,6 +106,13 @@ describe("vulnerability inventory correlation", () => {
       observedAt: "2026-07-19T20:00:00Z",
     });
     expect(first.findings).toHaveLength(1);
+    expect(first.observations[0]?.evidence[1]).toEqual({
+      collectedAt: timestamp,
+      digest: `sha256:${"a".repeat(64)}`,
+      kind: "inventory",
+      source: "paas-release-inventory",
+      uri: "inventory://deployment-1/release-1",
+    });
     expect(second.findings[0]?.id).toBe(first.findings[0]?.id);
     expect(second.findings[0]?.firstSeenAt).toBe(timestamp);
     expect(second.findings[0]?.lastSeenAt).toBe("2026-07-19T20:00:00Z");
