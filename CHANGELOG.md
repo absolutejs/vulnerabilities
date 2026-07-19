@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.2 - 2026-07-18
+
+- Generate CycloneDX 1.6 inventories from the dependency tree actually present
+  in `node_modules` and convert them to vulnerability inventory targets.
+- Sign and verify immutable SBOM attestations with a keyed SHA-256 envelope.
+- Add fail-closed deployment admission for critical and CISA KEV findings with
+  reviewed, evidence-backed VEX exceptions.
+
 ## 0.10.1 - 2026-07-18
 
 - Allow inventory correlation observations to retain an immutable provider URI

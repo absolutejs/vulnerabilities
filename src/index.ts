@@ -2,6 +2,7 @@ import { Type, type Static } from "@sinclair/typebox";
 import { ISO_TIMESTAMP_PATTERN } from "./primitives";
 
 export * from "./contracts";
+export * from "./admission";
 export * from "./alerts";
 export * from "./correlation";
 export * from "./feeds";
