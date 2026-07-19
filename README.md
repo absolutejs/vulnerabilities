@@ -131,6 +131,13 @@ Feed adapters share cursor, snapshot, cache, and failure-isolation contracts.
 Applications can persist snapshots in their own storage while keeping provider
 fetching separate from policy and remediation logic.
 
+Alert operations can use `VulnerabilityAlertConfiguration` to keep evaluation
+SLAs, severity-specific escalation timing, and opened/escalated/resolved
+notification routing in one validated contract. Use
+`validateVulnerabilityAlertConfiguration` at persistence boundaries and
+`resolveVulnerabilityAlertAudiences` when queuing deliveries. Owner routes fall
+back to administrators when an alert has no owning asset.
+
 ```ts
 import { createMemoryFeedStore, syncFeed } from "@absolutejs/vulnerabilities";
 

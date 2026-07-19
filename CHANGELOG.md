@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0 - 2026-07-18
+
+- Add a validated alert configuration contract for evaluation SLAs, escalation
+  timing, and notification routing.
+- Resolve owner and administrator audiences deterministically with an
+  administrator fallback for alerts without an owning asset.
+
 ## 0.9.1 - 2026-07-18
 
 - Keep finding alert identities stable when remediation plans are attached.

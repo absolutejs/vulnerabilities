@@ -27,6 +27,12 @@ export type VulnerabilityAlertKind =
 
 export type VulnerabilityAlertSeverity = "emergency" | "critical" | "warning";
 
+export type VulnerabilityAlertAudience = "admin" | "owner";
+export type VulnerabilityAlertDeliveryKind =
+  | "escalated"
+  | "opened"
+  | "resolved";
+
 export type VulnerabilityAlert = {
   assetId: string | null;
   body: string;
@@ -63,6 +69,18 @@ export type VulnerabilityAlertPolicy = {
   workerStaleAfterMs: number;
 };
 
+export type VulnerabilityAlertRoutingPolicy = Record<
+  VulnerabilityAlertSeverity,
+  Record<VulnerabilityAlertDeliveryKind, readonly VulnerabilityAlertAudience[]>
+>;
+
+export type VulnerabilityAlertConfiguration = {
+  contract: 1;
+  escalationAfterMs: Record<VulnerabilityAlertSeverity, number>;
+  evaluation: VulnerabilityAlertPolicy;
+  routing: VulnerabilityAlertRoutingPolicy;
+};
+
 export const DEFAULT_VULNERABILITY_ALERT_POLICY = {
   deadlineWarningMs: 3 * DAY_MS,
   executionStartSlaMs: DAY_MS,
@@ -72,6 +90,30 @@ export const DEFAULT_VULNERABILITY_ALERT_POLICY = {
   vexExpirationWarningMs: 7 * DAY_MS,
   workerStaleAfterMs: 2 * HOUR_MS,
 } as const satisfies VulnerabilityAlertPolicy;
+
+const defaultRoutes = {
+  escalated: ["admin"],
+  opened: ["owner"],
+  resolved: ["owner"],
+} as const satisfies Record<
+  VulnerabilityAlertDeliveryKind,
+  readonly VulnerabilityAlertAudience[]
+>;
+
+export const DEFAULT_VULNERABILITY_ALERT_CONFIGURATION = {
+  contract: 1,
+  escalationAfterMs: {
+    critical: HOUR_MS,
+    emergency: 15 * 60_000,
+    warning: DAY_MS,
+  },
+  evaluation: DEFAULT_VULNERABILITY_ALERT_POLICY,
+  routing: {
+    critical: defaultRoutes,
+    emergency: defaultRoutes,
+    warning: defaultRoutes,
+  },
+} as const satisfies VulnerabilityAlertConfiguration;
 
 export type VulnerabilityAlertEvaluationInput = {
   decisions?: readonly VexDecision[];
@@ -95,6 +137,57 @@ const timestamp = (value: string, label: string) => {
 const validateDuration = (value: number, label: string) => {
   if (!Number.isSafeInteger(value) || value < 0)
     throw new Error(`${label} must be a non-negative integer`);
+};
+
+const ALERT_SEVERITIES = ["emergency", "critical", "warning"] as const;
+const DELIVERY_KINDS = ["opened", "escalated", "resolved"] as const;
+const AUDIENCES = new Set<VulnerabilityAlertAudience>(["admin", "owner"]);
+
+export const validateVulnerabilityAlertConfiguration = (
+  configuration: VulnerabilityAlertConfiguration,
+): VulnerabilityAlertConfiguration => {
+  if (configuration.contract !== 1)
+    throw new Error("Vulnerability alert configuration contract must be 1");
+  for (const [label, value] of Object.entries(configuration.evaluation))
+    validateDuration(value, `evaluation.${label}`);
+  for (const severity of ALERT_SEVERITIES) {
+    validateDuration(
+      configuration.escalationAfterMs[severity],
+      `escalationAfterMs.${severity}`,
+    );
+    for (const kind of DELIVERY_KINDS) {
+      const audiences = configuration.routing[severity][kind];
+      if (audiences.length === 0)
+        throw new Error(`routing.${severity}.${kind} must not be empty`);
+      if (new Set(audiences).size !== audiences.length)
+        throw new Error(
+          `routing.${severity}.${kind} must not contain duplicates`,
+        );
+      for (const audience of audiences)
+        if (!AUDIENCES.has(audience))
+          throw new Error(
+            `routing.${severity}.${kind} has an invalid audience`,
+          );
+    }
+  }
+
+  return structuredClone(configuration);
+};
+
+export const resolveVulnerabilityAlertAudiences = (input: {
+  configuration?: VulnerabilityAlertConfiguration;
+  hasOwner: boolean;
+  kind: VulnerabilityAlertDeliveryKind;
+  severity: VulnerabilityAlertSeverity;
+}): VulnerabilityAlertAudience[] => {
+  const configuration = validateVulnerabilityAlertConfiguration(
+    input.configuration ?? DEFAULT_VULNERABILITY_ALERT_CONFIGURATION,
+  );
+  const audiences = configuration.routing[input.severity][input.kind].filter(
+    (audience) => audience !== "owner" || input.hasOwner,
+  );
+
+  return audiences.length > 0 ? [...audiences] : ["admin"];
 };
 
 const identity = (parts: readonly (string | null)[]) => {

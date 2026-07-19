@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/vulnerabilities",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Scanner-neutral vulnerability normalization, policy gates, host inventory, and audit-ready evidence for AbsoluteJS applications.",
   "type": "module",
   "license": "BSL-1.1",

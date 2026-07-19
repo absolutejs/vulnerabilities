@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+  DEFAULT_VULNERABILITY_ALERT_CONFIGURATION,
   evaluateVulnerabilityAlerts,
+  resolveVulnerabilityAlertAudiences,
+  validateVulnerabilityAlertConfiguration,
   type ManagedVulnerabilityFinding,
   type RemediationExecution,
   type RemediationPlan,
@@ -41,6 +44,45 @@ const risk: VulnerabilityRiskAssessment = {
 };
 
 describe("vulnerability alerts", () => {
+  test("validates escalation and resolves configurable notification routes", () => {
+    const configured = validateVulnerabilityAlertConfiguration({
+      ...structuredClone(DEFAULT_VULNERABILITY_ALERT_CONFIGURATION),
+      routing: {
+        ...structuredClone(DEFAULT_VULNERABILITY_ALERT_CONFIGURATION.routing),
+        emergency: {
+          escalated: ["admin"],
+          opened: ["owner", "admin"],
+          resolved: ["owner"],
+        },
+      },
+    });
+    expect(
+      resolveVulnerabilityAlertAudiences({
+        configuration: configured,
+        hasOwner: true,
+        kind: "opened",
+        severity: "emergency",
+      }),
+    ).toEqual(["owner", "admin"]);
+    expect(
+      resolveVulnerabilityAlertAudiences({
+        configuration: configured,
+        hasOwner: false,
+        kind: "resolved",
+        severity: "emergency",
+      }),
+    ).toEqual(["admin"]);
+    expect(() =>
+      validateVulnerabilityAlertConfiguration({
+        ...configured,
+        routing: {
+          ...configured.routing,
+          warning: { ...configured.routing.warning, opened: [] },
+        },
+      }),
+    ).toThrow("routing.warning.opened must not be empty");
+  });
+
   test("emits deterministic emergency, deadline, and planning alerts", () => {
     const input = { findings: [finding], now, riskAssessments: [risk] };
     const first = evaluateVulnerabilityAlerts(input);
