@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.3 - 2026-07-18
+
+- Use the immutable release ID as the application component version so runtime
+  SBOM generation supports applications without a declared package version.
+
 ## 0.10.2 - 2026-07-18
 
 - Generate CycloneDX 1.6 inventories from the dependency tree actually present

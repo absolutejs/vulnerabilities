@@ -31,7 +31,7 @@ describe("runtime CycloneDX SBOM", () => {
     });
     await writeFile(
       path.join(root, "package.json"),
-      JSON.stringify({ name: "client-web", version: "1.0.0" }),
+      JSON.stringify({ name: "client-web" }),
     );
     await writeFile(
       path.join(root, "node_modules", "fixture", "package.json"),
@@ -42,7 +42,11 @@ describe("runtime CycloneDX SBOM", () => {
       releaseId: "release-1",
       root,
     });
-    expect(sbom).toMatchObject({ bomFormat: "CycloneDX", specVersion: "1.6" });
+    expect(sbom).toMatchObject({
+      bomFormat: "CycloneDX",
+      metadata: { component: { version: "release-1" } },
+      specVersion: "1.6",
+    });
     expect(sbom.components.map(({ purl }) => purl)).toEqual([
       "pkg:npm/fixture@2.3.4",
     ]);

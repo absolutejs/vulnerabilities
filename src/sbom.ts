@@ -82,14 +82,22 @@ const manifestAt = async (root: string) => {
   return { name: value.name.trim(), version: value.version.trim() };
 };
 
+const applicationManifestAt = async (root: string, releaseId: string) => {
+  const value = JSON.parse(
+    await readFile(path.join(root, "package.json"), "utf8"),
+  ) as PackageManifest;
+  if (!value.name?.trim())
+    throw new Error("SBOM root package.json requires name");
+
+  return { name: value.name.trim(), version: releaseId };
+};
+
 export const generateCycloneDxSbom = async (input: {
   generatedAt?: string;
   releaseId: string;
   root: string;
 }): Promise<CycloneDxSbom> => {
-  const rootManifest = await manifestAt(input.root);
-  if (!rootManifest)
-    throw new Error("SBOM root package.json requires name and version");
+  const rootManifest = await applicationManifestAt(input.root, input.releaseId);
   const installed = new Map<string, CycloneDxComponent>();
   const visited = new Set<string>();
   const visitNodeModules = async (nodeModules: string): Promise<void> => {
@@ -145,7 +153,7 @@ export const generateCycloneDxSbom = async (input: {
           {
             name: "@absolutejs/vulnerabilities",
             type: "application",
-            version: "0.10.2",
+            version: "0.10.3",
           },
         ],
       },
