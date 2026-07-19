@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.0 - 2026-07-19
+
+- Sign witness receipts from an exact transparency head and size without
+  reconstructing an in-memory log.
+- Verify configurable quorums of distinct pinned witness identities while
+  rejecting duplicate, invalid, or mismatched receipts.
+
 ## 0.12.1 - 2026-07-19
 
 - Keep all JavaScript entrypoints and the verification CLI at their declared

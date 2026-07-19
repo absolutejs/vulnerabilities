@@ -227,3 +227,6 @@ The command exits `0` only for trusted evidence, `1` for cryptographically
 valid but untrusted or revoked evidence, and `2` for invalid input or usage.
 When a registry includes a receipt from an independent witness, the optional
 witness fingerprint requires that receipt to match the exact log head and size.
+Applications that use multiple independent witnesses can call
+`verifyEvidenceWitnessQuorum`; duplicate receipts from one identity never count
+more than once toward the required quorum.

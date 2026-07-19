@@ -24,6 +24,14 @@ export type SignedEvidenceWitnessCheckpoint = EvidenceWitnessCheckpoint & {
   witness: EvidenceVerificationKey;
 };
 
+export type EvidenceWitnessQuorumVerification = {
+  invalidCheckpoints: SignedEvidenceWitnessCheckpoint[];
+  quorumMet: boolean;
+  required: number;
+  trustedCheckpoints: SignedEvidenceWitnessCheckpoint[];
+  trustedWitnessFingerprints: string[];
+};
+
 const canonical = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value && typeof value === "object")
@@ -54,17 +62,18 @@ const checkpoint = (input: EvidenceWitnessCheckpoint) => {
   };
 };
 
-export const createEvidenceWitnessCheckpoint = (input: {
+export const createEvidenceWitnessCheckpointForHead = (input: {
   identity: EvidenceSigningIdentity;
-  log: EvidenceKeyTransparencyLog;
+  logHead: `sha256:${string}`;
+  logSize: number;
   observedAt?: string;
   origin: string;
 }): SignedEvidenceWitnessCheckpoint => {
   const identity = parseEvidenceSigningIdentity(input.identity);
   const payload = checkpoint({
     contract: EVIDENCE_WITNESS_CHECKPOINT_CONTRACT,
-    logHead: input.log.head,
-    logSize: input.log.entries.length,
+    logHead: input.logHead,
+    logSize: input.logSize,
     observedAt: input.observedAt ?? new Date().toISOString(),
     origin: input.origin,
   });
@@ -86,6 +95,20 @@ export const createEvidenceWitnessCheckpoint = (input: {
     witness: evidenceVerificationKeyFrom(identity),
   };
 };
+
+export const createEvidenceWitnessCheckpoint = (input: {
+  identity: EvidenceSigningIdentity;
+  log: EvidenceKeyTransparencyLog;
+  observedAt?: string;
+  origin: string;
+}): SignedEvidenceWitnessCheckpoint =>
+  createEvidenceWitnessCheckpointForHead({
+    identity: input.identity,
+    logHead: input.log.head,
+    logSize: input.log.entries.length,
+    observedAt: input.observedAt,
+    origin: input.origin,
+  });
 
 export const verifyEvidenceWitnessCheckpoint = (input: {
   checkpoint: SignedEvidenceWitnessCheckpoint;
@@ -135,4 +158,42 @@ export const verifyEvidenceWitnessCheckpoint = (input: {
       witnessKeyId: null,
     };
   }
+};
+
+export const verifyEvidenceWitnessQuorum = (input: {
+  checkpoints: readonly SignedEvidenceWitnessCheckpoint[];
+  log: EvidenceKeyTransparencyLog;
+  minimum: number;
+  trustedWitnesses: readonly EvidenceVerificationKey[];
+}): EvidenceWitnessQuorumVerification => {
+  if (!Number.isSafeInteger(input.minimum) || input.minimum < 1)
+    throw new Error("Evidence witness quorum minimum is invalid");
+  const trustedCheckpoints: SignedEvidenceWitnessCheckpoint[] = [];
+  const invalidCheckpoints: SignedEvidenceWitnessCheckpoint[] = [];
+  const trustedWitnessFingerprints = new Set<string>();
+  for (const checkpoint of input.checkpoints) {
+    const verification = verifyEvidenceWitnessCheckpoint({
+      checkpoint,
+      log: input.log,
+      trustedWitnesses: input.trustedWitnesses,
+    });
+    const fingerprint = checkpoint.witness.fingerprint;
+    if (
+      verification.trust !== "trusted" ||
+      trustedWitnessFingerprints.has(fingerprint)
+    ) {
+      invalidCheckpoints.push(structuredClone(checkpoint));
+      continue;
+    }
+    trustedWitnessFingerprints.add(fingerprint);
+    trustedCheckpoints.push(structuredClone(checkpoint));
+  }
+
+  return {
+    invalidCheckpoints,
+    quorumMet: trustedCheckpoints.length >= input.minimum,
+    required: input.minimum,
+    trustedCheckpoints,
+    trustedWitnessFingerprints: [...trustedWitnessFingerprints].sort(),
+  };
 };
