@@ -160,3 +160,27 @@ Production stores remain replaceable through the `FeedSnapshotStore`,
 `FeedSyncRunStore`, and `ManagedFindingStore` contracts. Recorded refreshes
 persist status, errors, revisions, timestamps, and record counts without
 coupling feed orchestration to a database driver.
+
+Deployment admission can retain a signed OSV and CISA KEV snapshot instead of
+calling upstream providers on the activation path. Exact package/version
+coverage is part of the signed payload, including queries that returned no
+advisories, so missing intelligence cannot be interpreted as a clean result.
+
+```ts
+import {
+  admissionIntelligenceCoverageKey,
+  signAdmissionIntelligenceSnapshot,
+} from "@absolutejs/vulnerabilities/intelligence-snapshot";
+
+const attestation = signAdmissionIntelligenceSnapshot({
+  coverage: components.map(({ identity }) =>
+    admissionIntelligenceCoverageKey(identity),
+  ),
+  issuedAt: new Date().toISOString(),
+  kev: kevSnapshot,
+  keyId: "vulnerability-intelligence-v1",
+  maxAgeMs: 24 * 60 * 60 * 1_000,
+  osv: osvSnapshot,
+  secret: signingSecret,
+});
+```

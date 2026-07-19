@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.5 - 2026-07-19
+
+- Sign admission-intelligence snapshots that bind exact package/version query
+  coverage to retained OSV advisories, CISA KEV records, and a freshness SLA.
+- Verify snapshot integrity and distinguish invalid evidence from expired data.
+
 ## 0.10.4 - 2026-07-18
 
 - Validate CycloneDX 1.6 structure, npm Package URLs, timestamps, component

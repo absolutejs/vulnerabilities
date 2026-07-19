@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/vulnerabilities",
-  "version": "0.10.4",
+  "version": "0.10.5",
   "description": "Scanner-neutral vulnerability normalization, policy gates, host inventory, and audit-ready evidence for AbsoluteJS applications.",
   "type": "module",
   "license": "BSL-1.1",
@@ -34,6 +34,10 @@
       "types": "./dist/sbom.d.ts",
       "import": "./dist/sbom.js"
     },
+    "./intelligence-snapshot": {
+      "types": "./dist/intelligence-snapshot.d.ts",
+      "import": "./dist/intelligence-snapshot.js"
+    },
     "./manifest": {
       "types": "./dist/manifest.d.ts",
       "import": "./dist/manifest.js"
@@ -49,7 +53,7 @@
     "format": "prettier --write \"./**/*.{ts,json,md}\"",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "build": "rm -rf dist && bun build src/index.ts src/host.ts src/sbom.ts src/manifest.ts --outdir dist --target=bun --external @absolutejs/manifest --external @sinclair/typebox && tsc -p tsconfig.build.json && absolute-manifest emit",
+    "build": "rm -rf dist && bun build src/index.ts src/host.ts src/sbom.ts src/intelligence-snapshot.ts src/manifest.ts --outdir dist --target=bun --external @absolutejs/manifest --external @sinclair/typebox && tsc -p tsconfig.build.json && absolute-manifest emit",
     "check:package": "bun run format && bun run typecheck && bun run test && bun run build"
   },
   "keywords": [
