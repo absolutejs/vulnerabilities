@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.0 - 2026-07-19
+
+- Add a signed, hash-chained evidence-key transparency log covering key
+  creation, cross-signed rotation, and explicit revocation.
+- Verify bundles against pinned genesis fingerprints and transparency heads,
+  detecting rewritten, reordered, truncated, and revoked signing history.
+- Ship `absolute-vulnerability-evidence verify` for offline client validation.
+
 ## 0.10.6 - 2026-07-19
 
 - Sign portable vulnerability evidence bundles with Ed25519 keys that clients

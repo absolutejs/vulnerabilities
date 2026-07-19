@@ -208,3 +208,19 @@ const verification = verifyVulnerabilityEvidenceBundle({
 
 Private keys remain an application secret. Published trust anchors contain
 only the key ID, fingerprint, creation time, algorithm, and DER public key.
+
+Key creation, rotation, and revocation can also be recorded in a signed,
+hash-chained transparency log. A client pins the genesis key fingerprint, the
+latest log head, or both through a trusted out-of-band channel. This detects
+rewritten or truncated history and rejects bundles signed by revoked keys.
+
+```bash
+absolute-vulnerability-evidence verify \
+  --bundle vulnerability-evidence.json \
+  --registry vulnerability-evidence-registry.json \
+  --trusted-fingerprint <genesis-sha256-fingerprint> \
+  --trusted-head <sha256-log-head>
+```
+
+The command exits `0` only for trusted evidence, `1` for cryptographically
+valid but untrusted or revoked evidence, and `2` for invalid input or usage.

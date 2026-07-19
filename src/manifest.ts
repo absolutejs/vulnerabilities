@@ -10,6 +10,7 @@ export const manifest = defineManifest<Record<string, never>>()({
       "enforce vulnerability policy",
       "collect Debian host security inventory",
       "produce audit-ready vulnerability evidence",
+      "verify offline vulnerability evidence and signing-key history",
       "verify vulnerability remediation after deployment",
     ],
     keywords: [
@@ -18,6 +19,7 @@ export const manifest = defineManifest<Record<string, never>>()({
       "Grype",
       "SBOM",
       "host-inventory",
+      "key-transparency",
       "security-policy",
       "remediation",
     ],
