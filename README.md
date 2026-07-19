@@ -219,8 +219,11 @@ absolute-vulnerability-evidence verify \
   --bundle vulnerability-evidence.json \
   --registry vulnerability-evidence-registry.json \
   --trusted-fingerprint <genesis-sha256-fingerprint> \
-  --trusted-head <sha256-log-head>
+  --trusted-head <sha256-log-head> \
+  --trusted-witness-fingerprint <witness-sha256-fingerprint>
 ```
 
 The command exits `0` only for trusted evidence, `1` for cryptographically
 valid but untrusted or revoked evidence, and `2` for invalid input or usage.
+When a registry includes a receipt from an independent witness, the optional
+witness fingerprint requires that receipt to match the exact log head and size.

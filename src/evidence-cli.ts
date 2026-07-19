@@ -10,6 +10,10 @@ import {
   verifyVulnerabilityEvidenceWithTransparency,
   type EvidenceKeyTransparencyLog,
 } from "./evidence-transparency";
+import {
+  verifyEvidenceWitnessCheckpoint,
+  type SignedEvidenceWitnessCheckpoint,
+} from "./evidence-witness";
 
 type EvidenceCliIo = {
   readText: (path: string) => Promise<string>;
@@ -19,6 +23,7 @@ type EvidenceCliIo = {
 
 type EvidenceRegistryFile = {
   transparency?: EvidenceKeyTransparencyLog;
+  witnesses?: SignedEvidenceWitnessCheckpoint[];
 };
 
 const usage = () =>
@@ -26,6 +31,7 @@ const usage = () =>
     "Usage:",
     "  absolute-vulnerability-evidence verify --bundle <file> --registry <file> \\",
     "    [--trusted-fingerprint <sha256>] [--trusted-head <sha256:digest>]",
+    "    [--trusted-witness-fingerprint <sha256>]",
     "",
     "At least one out-of-band trust anchor is required.",
   ].join("\n");
@@ -69,6 +75,10 @@ export const runEvidenceCli = async (
     const registryPath = option(args, "--registry");
     const trustedFingerprint = option(args, "--trusted-fingerprint");
     const trustedHead = option(args, "--trusted-head");
+    const trustedWitnessFingerprint = option(
+      args,
+      "--trusted-witness-fingerprint",
+    );
     if (!bundlePath || !registryPath) throw new Error(usage());
     if (!trustedFingerprint && !trustedHead)
       throw new Error("A trusted fingerprint or transparency head is required");
@@ -80,12 +90,10 @@ export const runEvidenceCli = async (
       bundleText,
       "Evidence bundle",
     );
-    const log = transparencyFrom(
-      parseJson<EvidenceRegistryFile | EvidenceKeyTransparencyLog>(
-        registryText,
-        "Evidence registry",
-      ),
-    );
+    const registry = parseJson<
+      EvidenceRegistryFile | EvidenceKeyTransparencyLog
+    >(registryText, "Evidence registry");
+    const log = transparencyFrom(registry);
     const untrustedLog = verifyEvidenceKeyTransparencyLog({ log });
     const genesis = untrustedLog.keys[0] ?? null;
     const fingerprintMatches = trustedFingerprint
@@ -99,14 +107,37 @@ export const runEvidenceCli = async (
       ...(trustedHead ? { pinnedHead: trustedHead } : {}),
       trustedKeys,
     });
+    const witnessReceipt =
+      "witnesses" in registry
+        ? (registry.witnesses?.find(
+            (entry) =>
+              entry.logHead === log.head &&
+              entry.logSize === log.entries.length,
+          ) ?? null)
+        : null;
+    const witnessKey = witnessReceipt?.witness ?? null;
+    const witnessFingerprintMatches = trustedWitnessFingerprint
+      ? witnessKey?.fingerprint === trustedWitnessFingerprint
+      : true;
+    const witness = witnessReceipt
+      ? verifyEvidenceWitnessCheckpoint({
+          checkpoint: witnessReceipt,
+          log,
+          trustedWitnesses:
+            witnessKey && witnessFingerprintMatches ? [witnessKey] : [],
+        })
+      : null;
     const trusted =
       verification.trust === "trusted" &&
       fingerprintMatches &&
-      (!trustedHead || verification.transparency.headMatches);
+      (!trustedHead || verification.transparency.headMatches) &&
+      (!trustedWitnessFingerprint || witness?.trust === "trusted");
     const result = {
       ...verification,
       fingerprintMatches,
       trusted,
+      witness,
+      witnessFingerprintMatches,
     };
     io.stdout(JSON.stringify(result, null, 2));
 

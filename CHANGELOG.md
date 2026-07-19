@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.0 - 2026-07-19
+
+- Add independently signed transparency checkpoints with pinned witness-key
+  verification and exact log-head and log-size binding.
+
 ## 0.11.0 - 2026-07-19
 
 - Add a signed, hash-chained evidence-key transparency log covering key

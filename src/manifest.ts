@@ -11,6 +11,7 @@ export const manifest = defineManifest<Record<string, never>>()({
       "collect Debian host security inventory",
       "produce audit-ready vulnerability evidence",
       "verify offline vulnerability evidence and signing-key history",
+      "verify independently witnessed transparency checkpoints",
       "verify vulnerability remediation after deployment",
     ],
     keywords: [
