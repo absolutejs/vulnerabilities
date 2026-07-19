@@ -184,3 +184,27 @@ const attestation = signAdmissionIntelligenceSnapshot({
   secret: signingSecret,
 });
 ```
+
+Client evidence can be wrapped in an Ed25519 bundle that binds the runtime
+SBOM, signed intelligence snapshot, admission decision, and the exact VEX
+exceptions used. Verification requires only the public key. Cross-signed key
+transitions preserve trust when an operator rotates the signing identity.
+
+```ts
+import {
+  createEvidenceSigningIdentity,
+  evidenceVerificationKeyFrom,
+  signVulnerabilityEvidenceBundle,
+  verifyVulnerabilityEvidenceBundle,
+} from "@absolutejs/vulnerabilities/evidence-bundle";
+
+const identity = createEvidenceSigningIdentity();
+const bundle = signVulnerabilityEvidenceBundle({ identity, payload });
+const verification = verifyVulnerabilityEvidenceBundle({
+  bundle,
+  trustedKeys: [evidenceVerificationKeyFrom(identity)],
+});
+```
+
+Private keys remain an application secret. Published trust anchors contain
+only the key ID, fingerprint, creation time, algorithm, and DER public key.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.6 - 2026-07-19
+
+- Sign portable vulnerability evidence bundles with Ed25519 keys that clients
+  can verify without access to control-plane secrets.
+- Cross-sign key rotations and verify a bundle back to a pinned public trust
+  anchor while retaining SBOM, intelligence, admission, and VEX evidence.
+
 ## 0.10.5 - 2026-07-19
 
 - Sign admission-intelligence snapshots that bind exact package/version query
