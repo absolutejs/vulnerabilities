@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/vulnerabilities",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "Scanner-neutral vulnerability normalization, policy gates, host inventory, and audit-ready evidence for AbsoluteJS applications.",
   "type": "module",
   "license": "BSL-1.1",
@@ -69,7 +69,8 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "build": "rm -rf dist && bun build --root src src/index.ts src/host.ts src/sbom.ts src/intelligence-snapshot.ts src/evidence-bundle.ts src/evidence-transparency.ts src/evidence-witness.ts src/evidence-cli.ts src/manifest.ts --outdir dist --target=bun --external @absolutejs/manifest --external @sinclair/typebox && tsc -p tsconfig.build.json && absolute-manifest emit",
-    "check:package": "bun run format && bun run typecheck && bun run test && bun run build"
+    "verify-package": "absolute-manifest verify-package",
+    "check:package": "bun run format && bun run typecheck && bun run test && bun run verify-package && bun run build && bun run verify-package --artifacts"
   },
   "keywords": [
     "absolutejs",
@@ -80,7 +81,7 @@
     "vulnerability-management"
   ],
   "dependencies": {
-    "@absolutejs/manifest": "0.3.0",
+    "@absolutejs/manifest": "0.7.2",
     "@renovatebot/pep440": "5.0.0",
     "@sinclair/typebox": "0.34.52",
     "packageurl-js": "2.0.1",
