@@ -17,7 +17,7 @@
     "access": "public"
   },
   "bin": {
-    "absolute-vulnerability-evidence": "./dist/evidence-cli.js"
+    "absolute-vulnerability-evidence": "dist/evidence-cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
