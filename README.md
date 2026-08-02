@@ -6,7 +6,7 @@ collects Debian/Ubuntu host inventory through a deploy-compatible target, and
 produces evidence objects suitable for storage or compliance reporting.
 
 Version `0.2.0` also defines the canonical contracts shared by feed adapters,
-scanner adapters, persistence layers, remediation workers, and PAAS. Assets,
+scanner adapters, persistence layers, remediation workers, and host applications. Assets,
 components, advisories, scanner observations, managed findings, VEX decisions,
 risk assessments, remediation plans, and execution evidence all carry an
 explicit contract version.
@@ -19,31 +19,31 @@ positives.
 
 ```ts
 import {
-  assertVulnerabilityPolicy,
-  createVulnerabilityEvidence,
-  summarizeGrypeReport,
-} from "@absolutejs/vulnerabilities";
+	assertVulnerabilityPolicy,
+	createVulnerabilityEvidence,
+	summarizeGrypeReport
+} from '@absolutejs/vulnerabilities';
 
-const counts = summarizeGrypeReport(await Bun.file("grype.json").json());
+const counts = summarizeGrypeReport(await Bun.file('grype.json').json());
 assertVulnerabilityPolicy(counts, {
-  maximums: { critical: 0, high: 0 },
+	maximums: { critical: 0, high: 0 }
 });
 
 const evidence = createVulnerabilityEvidence({
-  asset: { id: imageDigest, kind: "container" },
-  scan: {
-    ...counts,
-    databaseBuiltAt: grypeDatabaseBuiltAt,
-    scannedAt: new Date().toISOString(),
-    scanner: "grype",
-  },
+	asset: { id: imageDigest, kind: 'container' },
+	scan: {
+		...counts,
+		databaseBuiltAt: grypeDatabaseBuiltAt,
+		scannedAt: new Date().toISOString(),
+		scanner: 'grype'
+	}
 });
 ```
 
 Host collection is structurally compatible with `@absolutejs/deploy` targets:
 
 ```ts
-import { collectDebianHostInventory } from "@absolutejs/vulnerabilities/host";
+import { collectDebianHostInventory } from '@absolutejs/vulnerabilities/host';
 
 const inventory = await collectDebianHostInventory(deployTarget);
 ```
@@ -63,14 +63,14 @@ release context such as `Ubuntu:24.04` while the component purl remains a
 standard `pkg:deb` identifier.
 
 ```ts
-import { correlateVulnerabilityInventory } from "@absolutejs/vulnerabilities";
+import { correlateVulnerabilityInventory } from '@absolutejs/vulnerabilities';
 
 const result = correlateVulnerabilityInventory({
-  advisories,
-  asset,
-  components,
-  existingFindings,
-  observedAt: new Date().toISOString(),
+	advisories,
+	asset,
+	components,
+	existingFindings,
+	observedAt: new Date().toISOString()
 });
 
 await findingStore.saveMany(result.upserts);
@@ -79,13 +79,13 @@ await findingStore.saveMany(result.upserts);
 Managed finding identities are deterministic and scanner-independent:
 
 ```ts
-import { createStableFindingId } from "@absolutejs/vulnerabilities";
+import { createStableFindingId } from '@absolutejs/vulnerabilities';
 
 const findingId = createStableFindingId({
-  tenantId: "tenant-1",
-  assetId: "production-web-1",
-  componentIdentity: "pkg:deb/ubuntu/nginx@1.24.0-2ubuntu7.5",
-  vulnerabilityIds: ["CVE-2026-0001", "USN-9999-1"],
+	tenantId: 'tenant-1',
+	assetId: 'production-web-1',
+	componentIdentity: 'pkg:deb/ubuntu/nginx@1.24.0-2ubuntu7.5',
+	vulnerabilityIds: ['CVE-2026-0001', 'USN-9999-1']
 });
 ```
 
@@ -101,23 +101,23 @@ ordering rules.
 
 ```ts
 import {
-  comparePackageVersions,
-  evaluateVersionConstraints,
-} from "@absolutejs/vulnerabilities";
+	comparePackageVersions,
+	evaluateVersionConstraints
+} from '@absolutejs/vulnerabilities';
 
 comparePackageVersions({
-  ecosystem: "ubuntu",
-  left: "1.24.0-2ubuntu7.4",
-  right: "1.24.0-2ubuntu7.5",
+	ecosystem: 'ubuntu',
+	left: '1.24.0-2ubuntu7.4',
+	right: '1.24.0-2ubuntu7.5'
 });
 
 evaluateVersionConstraints({
-  ecosystem: "ubuntu",
-  installedVersion: "1.24.0-2ubuntu7.4",
-  constraints: [
-    { operator: "gte", version: "1.24.0" },
-    { operator: "lt", version: "1.24.0-2ubuntu7.5" },
-  ],
+	ecosystem: 'ubuntu',
+	installedVersion: '1.24.0-2ubuntu7.4',
+	constraints: [
+		{ operator: 'gte', version: '1.24.0' },
+		{ operator: 'lt', version: '1.24.0-2ubuntu7.5' }
+	]
 });
 ```
 
@@ -139,16 +139,16 @@ notification routing in one validated contract. Use
 back to administrators when an alert has no owning asset.
 
 ```ts
-import { createMemoryFeedStore, syncFeed } from "@absolutejs/vulnerabilities";
+import { createMemoryFeedStore, syncFeed } from '@absolutejs/vulnerabilities';
 
 const result = await syncFeed({
-  adapter,
-  maxStaleMs: 24 * 60 * 60 * 1_000,
-  store: createMemoryFeedStore(),
+	adapter,
+	maxStaleMs: 24 * 60 * 60 * 1_000,
+	store: createMemoryFeedStore()
 });
 
-if (result.status === "stale") {
-  // Cached intelligence remains available, with the provider error attached.
+if (result.status === 'stale') {
+	// Cached intelligence remains available, with the provider error attached.
 }
 ```
 
@@ -168,20 +168,20 @@ advisories, so missing intelligence cannot be interpreted as a clean result.
 
 ```ts
 import {
-  admissionIntelligenceCoverageKey,
-  signAdmissionIntelligenceSnapshot,
-} from "@absolutejs/vulnerabilities/intelligence-snapshot";
+	admissionIntelligenceCoverageKey,
+	signAdmissionIntelligenceSnapshot
+} from '@absolutejs/vulnerabilities/intelligence-snapshot';
 
 const attestation = signAdmissionIntelligenceSnapshot({
-  coverage: components.map(({ identity }) =>
-    admissionIntelligenceCoverageKey(identity),
-  ),
-  issuedAt: new Date().toISOString(),
-  kev: kevSnapshot,
-  keyId: "vulnerability-intelligence-v1",
-  maxAgeMs: 24 * 60 * 60 * 1_000,
-  osv: osvSnapshot,
-  secret: signingSecret,
+	coverage: components.map(({ identity }) =>
+		admissionIntelligenceCoverageKey(identity)
+	),
+	issuedAt: new Date().toISOString(),
+	kev: kevSnapshot,
+	keyId: 'vulnerability-intelligence-v1',
+	maxAgeMs: 24 * 60 * 60 * 1_000,
+	osv: osvSnapshot,
+	secret: signingSecret
 });
 ```
 
@@ -192,17 +192,17 @@ transitions preserve trust when an operator rotates the signing identity.
 
 ```ts
 import {
-  createEvidenceSigningIdentity,
-  evidenceVerificationKeyFrom,
-  signVulnerabilityEvidenceBundle,
-  verifyVulnerabilityEvidenceBundle,
-} from "@absolutejs/vulnerabilities/evidence-bundle";
+	createEvidenceSigningIdentity,
+	evidenceVerificationKeyFrom,
+	signVulnerabilityEvidenceBundle,
+	verifyVulnerabilityEvidenceBundle
+} from '@absolutejs/vulnerabilities/evidence-bundle';
 
 const identity = createEvidenceSigningIdentity();
 const bundle = signVulnerabilityEvidenceBundle({ identity, payload });
 const verification = verifyVulnerabilityEvidenceBundle({
-  bundle,
-  trustedKeys: [evidenceVerificationKeyFrom(identity)],
+	bundle,
+	trustedKeys: [evidenceVerificationKeyFrom(identity)]
 });
 ```
 
