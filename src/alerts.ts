@@ -16,6 +16,7 @@ const DAY_MS = 24 * HOUR_MS;
 export type VulnerabilityAlertKind =
   | "evidence_checkpoint_stale"
   | "evidence_witness_backup_stale"
+  | "evidence_witness_certificate_expiring"
   | "evidence_witness_key_rotation_due"
   | "evidence_witness_quorum_failed"
   | "evidence_witness_unhealthy"
@@ -70,6 +71,7 @@ export type VulnerabilityEvidenceOperationalCondition = {
   kind:
     | "evidence_checkpoint_stale"
     | "evidence_witness_backup_stale"
+    | "evidence_witness_certificate_expiring"
     | "evidence_witness_key_rotation_due"
     | "evidence_witness_quorum_failed"
     | "evidence_witness_unhealthy";
@@ -525,6 +527,8 @@ export const evaluateVulnerabilityAlerts = (
     evidence_checkpoint_stale: "Evidence witness checkpoint is stale",
     evidence_witness_backup_stale:
       "Evidence witness backup verification is stale",
+    evidence_witness_certificate_expiring:
+      "Evidence witness serving certificate is expiring",
     evidence_witness_key_rotation_due: "Evidence witness key rotation is due",
     evidence_witness_quorum_failed: "Evidence witness quorum is unavailable",
     evidence_witness_unhealthy: "Evidence witness is unhealthy",

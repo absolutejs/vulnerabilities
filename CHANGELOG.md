@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.0 - 2026-08-17
+
+- Add an `evidence_witness_certificate_expiring` operational condition so a
+  witness serving certificate can be alerted on before it stops verifying,
+  rather than only after the witness has already gone unreachable.
+
 ## 0.14.0 - 2026-07-19
 
 - Add deterministic operational alerts for unhealthy evidence witnesses,

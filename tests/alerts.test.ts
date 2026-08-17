@@ -339,6 +339,32 @@ describe("vulnerability alerts", () => {
     });
   });
 
+  test("raises an expiring witness certificate before it stops verifying", () => {
+    const alerts = evaluateVulnerabilityAlerts({
+      evidenceConditions: [
+        {
+          body: "Evidence witness witness-a serving certificate expires soon.",
+          dueAt: "2026-08-17T12:00:00.000Z",
+          kind: "evidence_witness_certificate_expiring" as const,
+          observedAt: now,
+          severity: "warning" as const,
+          sourceId: "witness-a",
+          tenantId: "control-plane",
+        },
+      ],
+      findings: [],
+      now,
+    });
+
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toMatchObject({
+      kind: "evidence_witness_certificate_expiring",
+      severity: "warning",
+      sourceId: "witness-a",
+      title: "Evidence witness serving certificate is expiring",
+    });
+  });
+
   test("rejects evidence posture conditions without durable identities", () => {
     expect(() =>
       evaluateVulnerabilityAlerts({
