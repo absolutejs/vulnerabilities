@@ -177,7 +177,16 @@ export const syncFeed = async <T>(input: {
           snapshot: null,
           status: "failed",
         };
-      return { error: null, snapshot: previous, status: "not_modified" };
+      // The source confirmed the cached snapshot is current, so it is as
+      // fresh as a fetch made now. Keeping the old fetchedAt made a feed that
+      // simply had not changed (CISA KEV can go days without a release) look
+      // stale, and everything gated on freshness stopped.
+      const confirmed: FeedSnapshot<T> = {
+        ...previous,
+        fetchedAt: new Date(input.now ?? Date.now()).toISOString(),
+      };
+      await input.store.save(confirmed);
+      return { error: null, snapshot: confirmed, status: "not_modified" };
     }
     const snapshot: FeedSnapshot<T> = {
       cursor: fetched.cursor,

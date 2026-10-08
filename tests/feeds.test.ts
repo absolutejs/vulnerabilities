@@ -110,6 +110,27 @@ describe("feed synchronization", () => {
     expect((await store.load("fixture"))?.revision).toBe("2");
   });
 
+  test("a not-modified feed is confirmed current as of the check", async () => {
+    const store = createMemoryFeedStore([snapshot()]);
+    const now = Date.parse("2026-10-08T04:00:00.000Z");
+    const result = await syncFeed({
+      adapter: { descriptor, fetch: async () => ({ status: "not_modified" }) },
+      maxStaleMs: 60_000,
+      now,
+      store,
+    });
+
+    expect(result.status).toBe("not_modified");
+    expect(result.snapshot?.fetchedAt).toBe("2026-10-08T04:00:00.000Z");
+    expect(result.snapshot?.revision).toBe("1");
+    expect((await store.load("fixture"))?.fetchedAt).toBe(
+      "2026-10-08T04:00:00.000Z",
+    );
+    expect(
+      isFeedFresh({ maxAgeMs: 60_000, now, snapshot: result.snapshot! }),
+    ).toBe(true);
+  });
+
   test("accepts not-modified only when a cached snapshot exists", async () => {
     const adapter: FeedAdapter<Fixture> = {
       descriptor,

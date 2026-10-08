@@ -1,5 +1,19 @@
 {
 	"contract": 1,
 	"name": "@absolutejs/vulnerabilities",
-	"releases": []
+	"releases": [
+		{
+			"changes": [
+				{
+					"kind": "fixed",
+					"summary": "A feed sync answered not_modified now saves the cached snapshot with fetchedAt set to the check, so a feed that has not changed (CISA KEV can go days without a release) no longer reads as stale and blocks admission intelligence signing",
+					"symbols": [
+						"syncFeed"
+					]
+				}
+			],
+			"date": "2026-10-08",
+			"version": "0.15.1"
+		}
+	]
 }
