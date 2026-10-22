@@ -195,6 +195,19 @@ export const generateCycloneDxSbom = async (input: {
   const rootManifest = await applicationManifestAt(input.root, input.releaseId);
   const installed = new Map<string, CycloneDxComponent>();
   const visited = new Set<string>();
+  const visitIsolatedStore = async (store: string): Promise<void> => {
+    const entries = await readdir(store, { withFileTypes: true }).catch(
+      () => [],
+    );
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      await visitNodeModules(
+        entry.name === "node_modules"
+          ? path.join(store, entry.name)
+          : path.join(store, entry.name, "node_modules"),
+      );
+    }
+  };
   const visitNodeModules = async (nodeModules: string): Promise<void> => {
     const entries = await readdir(nodeModules, { withFileTypes: true }).catch(
       (error: unknown) => {
@@ -209,8 +222,15 @@ export const generateCycloneDxSbom = async (input: {
       },
     );
     for (const entry of entries) {
-      if (entry.name === ".bin" || entry.name === ".bun") continue;
+      if (entry.name === ".bin") continue;
       const candidate = path.join(nodeModules, entry.name);
+      // Bun's isolated install (the default for workspaces) keeps every
+      // package in this store, each beside its own dependencies, and links
+      // only direct dependencies into a package's node_modules.
+      if (entry.name === ".bun") {
+        await visitIsolatedStore(candidate);
+        continue;
+      }
       if (entry.name.startsWith("@")) {
         await visitNodeModules(candidate);
         continue;

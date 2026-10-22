@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
@@ -88,6 +88,58 @@ describe("runtime CycloneDX SBOM", () => {
     expect(() =>
       parseCycloneDxSbom({ ...sbom, components: [{ name: "forged" }] }),
     ).toThrow("type is invalid");
+  });
+
+  test("records a Bun isolated install's store, workspace packages included", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "absolutejs-sbom-"));
+    roots.push(root);
+    const writePackage = async (
+      directory: string,
+      name: string,
+      version: string,
+    ) => {
+      await mkdir(directory, { recursive: true });
+      await writeFile(
+        path.join(directory, "package.json"),
+        JSON.stringify({ name, version }),
+      );
+    };
+    await writeFile(
+      path.join(root, "package.json"),
+      JSON.stringify({ name: "workspace", workspaces: ["web"] }),
+    );
+    const store = path.join(root, "node_modules", ".bun");
+    // elysia@2.0.0 depends on cookie@1.0.2, which sits beside it in the
+    // store; only the web workspace depends on elysia.
+    await writePackage(
+      path.join(store, "elysia@2.0.0", "node_modules", "elysia"),
+      "elysia",
+      "2.0.0",
+    );
+    await writePackage(
+      path.join(store, "cookie@1.0.2", "node_modules", "cookie"),
+      "cookie",
+      "1.0.2",
+    );
+    await symlink(
+      path.join(store, "cookie@1.0.2", "node_modules", "cookie"),
+      path.join(store, "elysia@2.0.0", "node_modules", "cookie"),
+    );
+    await writePackage(path.join(root, "web"), "web", "0.0.0");
+    await mkdir(path.join(root, "web", "node_modules"));
+    await symlink(
+      path.join(store, "elysia@2.0.0", "node_modules", "elysia"),
+      path.join(root, "web", "node_modules", "elysia"),
+    );
+    const sbom = await generateCycloneDxSbom({
+      generatedAt: "2026-10-22T20:00:00Z",
+      releaseId: "release-1",
+      root,
+    });
+    expect(sbom.components.map(({ purl }) => purl)).toEqual([
+      "pkg:npm/cookie@1.0.2",
+      "pkg:npm/elysia@2.0.0",
+    ]);
   });
 });
 

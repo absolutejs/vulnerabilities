@@ -6,6 +6,16 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "generateCycloneDxSbom records every package of a Bun isolated install (node_modules/.bun, the default for workspaces): it skipped the store and found only the root's direct dependencies, so a workspace app's SBOM missed nearly all of its packages"
+				}
+			],
+			"date": "2026-10-22",
+			"version": "0.15.2"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "A feed sync answered not_modified now saves the cached snapshot with fetchedAt set to the check, so a feed that has not changed (CISA KEV can go days without a release) no longer reads as stale and blocks admission intelligence signing",
 					"symbols": [
 						"syncFeed"
