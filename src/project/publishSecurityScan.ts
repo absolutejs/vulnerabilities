@@ -6,6 +6,8 @@ import type {
   PublishSecurityFinding,
   PublishSecurityScanResult,
   PublishSecuritySeverity,
+  SourceScanCoverage,
+  SourceScanStop,
 } from "./types";
 import {
   checkCommittedEnvFile,
@@ -103,13 +105,36 @@ export type PublishSecurityScanOptions = {
 };
 
 type ScanState = {
+  budgetMs: number;
   bytes: number;
   checked: number;
   complete: boolean;
   deadline: number;
   files: string[];
+  listed: number;
+  readable: number;
+  /** The first limit the scan reached; it stops there. */
+  stop: SourceScanStop | null;
   /** A folder inside the source could not be read. The rest is scanned. */
   unreadable: boolean;
+  /** What could not be read, and why: the first few. */
+  unreadablePaths: { path: string; error: string }[];
+};
+
+const UNREADABLE_PATHS_KEPT = 5;
+
+const errorText = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
+
+const noteUnreadable = (state: ScanState, file: string, error: unknown) => {
+  state.unreadable = true;
+  if (state.unreadablePaths.length < UNREADABLE_PATHS_KEPT)
+    state.unreadablePaths.push({ error: errorText(error), path: file || "." });
+};
+
+const stopAt = (state: ScanState, stop: SourceScanStop) => {
+  state.complete = false;
+  state.stop ??= stop;
 };
 
 const listFiles = async (root: string, state: ScanState) => {
@@ -124,8 +149,8 @@ const listFiles = async (root: string, state: ScanState) => {
     const entries =
       relative === ""
         ? await listing
-        : await listing.catch(() => {
-            state.unreadable = true;
+        : await listing.catch((error: unknown) => {
+            noteUnreadable(state, relative, error);
 
             return [];
           });
@@ -137,7 +162,8 @@ const listFiles = async (root: string, state: ScanState) => {
         directories.push(child);
       else if (entry.isFile()) state.files.push(child);
     }
-    if (state.files.length > MAXIMUM_FILES) state.complete = false;
+    if (state.files.length > MAXIMUM_FILES)
+      stopAt(state, { limit: MAXIMUM_FILES, reason: "file-limit" });
     await directories.reduce<Promise<void>>(
       (pending, directory) => pending.then(() => visit(directory)),
       Promise.resolve(),
@@ -146,6 +172,7 @@ const listFiles = async (root: string, state: ScanState) => {
   await visit("");
   state.files.splice(MAXIMUM_FILES);
   state.files.sort();
+  state.listed = state.files.length;
 };
 
 const readTextFile = async (absolute: string) => {
@@ -226,34 +253,62 @@ const contentFindings = async (
   state: ScanState,
 ) => {
   const findings: PublishSecurityFinding[] = [];
-  let halted = false;
   const scanOne = async (file: string) => {
-    halted ||= Date.now() > state.deadline || state.bytes > MAXIMUM_TOTAL_BYTES;
-    if (halted) {
-      state.complete = false;
+    if (state.stop) return;
+    if (Date.now() > state.deadline)
+      stopAt(state, { budgetMs: state.budgetMs, reason: "time-budget" });
+    else if (state.bytes > MAXIMUM_TOTAL_BYTES)
+      stopAt(state, { limitBytes: MAXIMUM_TOTAL_BYTES, reason: "byte-limit" });
+    if (state.stop) return;
+    const text = await readTextFile(path.join(root, file)).catch(
+      (error: unknown) => {
+        noteUnreadable(state, file, error);
 
-      return;
-    }
-    const text = await readTextFile(path.join(root, file)).catch(() => {
-      state.unreadable = true;
-      return null;
-    });
+        return null;
+      },
+    );
     if (text === null) return;
     state.bytes += Buffer.byteLength(text);
     state.checked += 1;
     findings.push(...scanFileText(file, text, layout));
   };
   // One file at a time: the scan shares the host with builds.
-  await files
-    .filter(shouldRead)
-    .reduce<
-      Promise<void>
-    >((pending, file) => pending.then(() => scanOne(file)), Promise.resolve());
+  const readable = files.filter(shouldRead);
+  state.readable = readable.length;
+  await readable.reduce<Promise<void>>(
+    (pending, file) => pending.then(() => scanOne(file)),
+    Promise.resolve(),
+  );
 
   return findings;
 };
 
-const incompleteFinding = (checked: number): PublishSecurityFinding => ({
+const MEBIBYTE = 1_048_576;
+const megabytes = (bytes: number) => `${(bytes / MEBIBYTE).toFixed(1)} MB`;
+
+/** What stopped a source scan, and how much it read, in a sentence. */
+export const describeSourceStop = (
+  stop: SourceScanStop,
+  coverage: SourceScanCoverage,
+) => {
+  const read = `${coverage.checkedFiles} of ${coverage.readableFiles} files (${megabytes(coverage.checkedBytes)})`;
+  if (stop.reason === "time-budget")
+    return `Stopped at its ${stop.budgetMs / 1000} s time budget after ${read}.`;
+  if (stop.reason === "file-limit")
+    return `Stopped at its limit of ${stop.limit} files; read ${read}.`;
+  if (stop.reason === "byte-limit")
+    return `Stopped at its limit of ${megabytes(stop.limitBytes)} read; read ${read}.`;
+  const paths = stop.paths
+    .map((entry) => `${entry.path} (${entry.error})`)
+    .join(", ");
+
+  return `Could not read ${paths}; read ${read}.`;
+};
+
+const incompleteFinding = (
+  stop: SourceScanStop,
+  coverage: SourceScanCoverage,
+): PublishSecurityFinding => ({
   excerpt: null,
   file: ".",
   fingerprint: fingerprintOf("scan-incomplete", ".", ""),
@@ -261,7 +316,7 @@ const incompleteFinding = (checked: number): PublishSecurityFinding => ({
   line: null,
   rule: "scan-incomplete",
   severity: "info",
-  summary: `A file was unreadable or a scan limit was reached. Checked ${checked} files. What it found is real; some files were not checked.`,
+  summary: `${describeSourceStop(stop, coverage)} What it found is real; some files were not checked.`,
   title: "Only part of the project was checked",
 });
 
@@ -316,12 +371,17 @@ export const scanProjectDirectory = async (
   }: PublishSecurityScanOptions = {},
 ): Promise<PublishSecurityScanResult> => {
   const state: ScanState = {
+    budgetMs: timeBudgetMs,
     bytes: 0,
     checked: 0,
     complete: true,
     deadline: Date.now() + timeBudgetMs,
     files: [],
+    listed: 0,
+    readable: 0,
+    stop: null,
     unreadable: false,
+    unreadablePaths: [],
   };
   await listFiles(root, state);
   const layout = await readLayout(root);
@@ -331,12 +391,23 @@ export const scanProjectDirectory = async (
   ];
   const findings = uniqueFindings(found).sort(bySeverity);
   const complete = state.complete && !state.unreadable;
-  if (!complete) findings.push(incompleteFinding(state.checked));
+  const coverage: SourceScanCoverage = {
+    checkedBytes: state.bytes,
+    checkedFiles: state.checked,
+    listedFiles: state.listed,
+    readableFiles: state.readable,
+  };
+  const stop: SourceScanStop | null = complete
+    ? null
+    : (state.stop ?? { paths: state.unreadablePaths, reason: "unreadable" });
+  if (stop) findings.push(incompleteFinding(stop, coverage));
 
   return {
     checkedFiles: state.checked,
     complete,
     counts: countFindings(findings),
+    coverage,
     findings,
+    stop,
   };
 };
