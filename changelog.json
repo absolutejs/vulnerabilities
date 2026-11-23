@@ -5,6 +5,20 @@
 		{
 			"changes": [
 				{
+					"detail": "`coverage` and `stop` on `PublishSecurityScanResult` are optional, so a result built before 0.17 (a test double, or a scan relayed from a host on an older version) still type-checks. Scans made by 0.17 always set both.",
+					"kind": "fixed",
+					"summary": "A scan result from before 0.17 still fits PublishSecurityScanResult",
+					"symbols": [
+						"PublishSecurityScanResult"
+					]
+				}
+			],
+			"date": "2026-11-23",
+			"version": "0.17.1"
+		},
+		{
+			"changes": [
+				{
 					"detail": "Bun 1.3 writes `bun.lock` as `lockfileVersion: 2` (it adds `configVersion` and keeps every package as `[\"name@version\", …]`). The dependency check only accepted versions 0 and 1, so every project with a current Bun lockfile scanned incomplete, which refuses a production release. Version 2 is read like version 1, and an unknown version is named in the check's detail.",
 					"kind": "fixed",
 					"summary": "Bun 1.3's version 2 bun.lock is scanned, instead of leaving every scan incomplete"

@@ -68,8 +68,10 @@ export type PublishSecurityScanResult = {
   /** False when the scan stopped at a limit; the findings are still real. */
   complete: boolean;
   counts: PublishSecurityCounts;
-  coverage: SourceScanCoverage;
+  /** What the scan covered. Absent from results made before 0.17. */
+  coverage?: SourceScanCoverage;
   findings: PublishSecurityFinding[];
-  /** Null when complete. */
-  stop: SourceScanStop | null;
+  /** Why it stopped; null when complete. Absent from results made before
+   *  0.17. */
+  stop?: SourceScanStop | null;
 };
