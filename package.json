@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/vulnerabilities",
-  "version": "0.15.2",
+  "version": "0.16.0",
   "description": "Scanner-neutral vulnerability normalization, policy gates, host inventory, and audit-ready evidence for AbsoluteJS applications.",
   "type": "module",
   "license": "BSL-1.1",
@@ -57,7 +57,15 @@
       "types": "./dist/manifest.d.ts",
       "import": "./dist/manifest.js"
     },
-    "./manifest.json": "./dist/manifest.json"
+    "./manifest.json": "./dist/manifest.json",
+    "./scan": {
+      "types": "./dist/scan.d.ts",
+      "import": "./dist/scan.js"
+    },
+    "./scan/cli": {
+      "types": "./dist/project/cli.d.ts",
+      "import": "./dist/project/cli.js"
+    }
   },
   "files": [
     "CHANGELOG.md",
@@ -70,7 +78,7 @@
     "format": "prettier --write \"./**/*.{ts,json,md}\"",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "build": "rm -rf dist && bun build --root src src/index.ts src/host.ts src/sbom.ts src/intelligence-snapshot.ts src/evidence-bundle.ts src/evidence-transparency.ts src/evidence-witness.ts src/evidence-cli.ts src/manifest.ts --outdir dist --target=bun --external @absolutejs/manifest --external @sinclair/typebox && tsc -p tsconfig.build.json && absolute-manifest emit",
+    "build": "rm -rf dist && bun build --root src src/index.ts src/host.ts src/sbom.ts src/intelligence-snapshot.ts src/evidence-bundle.ts src/evidence-transparency.ts src/evidence-witness.ts src/evidence-cli.ts src/scan.ts src/project/cli.ts src/manifest.ts --outdir dist --target=bun --external @absolutejs/manifest --external @sinclair/typebox && tsc -p tsconfig.build.json && absolute-manifest emit",
     "verify-package": "absolute-manifest verify-package",
     "check:package": "bun run format && bun run typecheck && bun run test && bun run verify-package && bun run build && absolute-changelog check",
     "prepublishOnly": "bun run check:package"

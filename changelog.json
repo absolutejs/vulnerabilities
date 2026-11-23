@@ -5,6 +5,16 @@
 		{
 			"changes": [
 				{
+					"kind": "added",
+					"summary": "Scan source, locked dependencies and registry images with redacted findings, reproducible fixes and explicit coverage."
+				}
+			],
+			"date": "2026-11-23",
+			"version": "0.16.0"
+		},
+		{
+			"changes": [
+				{
 					"kind": "fixed",
 					"summary": "generateCycloneDxSbom records every package of a Bun isolated install (node_modules/.bun, the default for workspaces): it skipped the store and found only the root's direct dependencies, so a workspace app's SBOM missed nearly all of its packages"
 				}

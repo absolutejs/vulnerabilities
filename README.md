@@ -19,31 +19,31 @@ positives.
 
 ```ts
 import {
-	assertVulnerabilityPolicy,
-	createVulnerabilityEvidence,
-	summarizeGrypeReport
-} from '@absolutejs/vulnerabilities';
+  assertVulnerabilityPolicy,
+  createVulnerabilityEvidence,
+  summarizeGrypeReport,
+} from "@absolutejs/vulnerabilities";
 
-const counts = summarizeGrypeReport(await Bun.file('grype.json').json());
+const counts = summarizeGrypeReport(await Bun.file("grype.json").json());
 assertVulnerabilityPolicy(counts, {
-	maximums: { critical: 0, high: 0 }
+  maximums: { critical: 0, high: 0 },
 });
 
 const evidence = createVulnerabilityEvidence({
-	asset: { id: imageDigest, kind: 'container' },
-	scan: {
-		...counts,
-		databaseBuiltAt: grypeDatabaseBuiltAt,
-		scannedAt: new Date().toISOString(),
-		scanner: 'grype'
-	}
+  asset: { id: imageDigest, kind: "container" },
+  scan: {
+    ...counts,
+    databaseBuiltAt: grypeDatabaseBuiltAt,
+    scannedAt: new Date().toISOString(),
+    scanner: "grype",
+  },
 });
 ```
 
 Host collection is structurally compatible with `@absolutejs/deploy` targets:
 
 ```ts
-import { collectDebianHostInventory } from '@absolutejs/vulnerabilities/host';
+import { collectDebianHostInventory } from "@absolutejs/vulnerabilities/host";
 
 const inventory = await collectDebianHostInventory(deployTarget);
 ```
@@ -63,14 +63,14 @@ release context such as `Ubuntu:24.04` while the component purl remains a
 standard `pkg:deb` identifier.
 
 ```ts
-import { correlateVulnerabilityInventory } from '@absolutejs/vulnerabilities';
+import { correlateVulnerabilityInventory } from "@absolutejs/vulnerabilities";
 
 const result = correlateVulnerabilityInventory({
-	advisories,
-	asset,
-	components,
-	existingFindings,
-	observedAt: new Date().toISOString()
+  advisories,
+  asset,
+  components,
+  existingFindings,
+  observedAt: new Date().toISOString(),
 });
 
 await findingStore.saveMany(result.upserts);
@@ -79,13 +79,13 @@ await findingStore.saveMany(result.upserts);
 Managed finding identities are deterministic and scanner-independent:
 
 ```ts
-import { createStableFindingId } from '@absolutejs/vulnerabilities';
+import { createStableFindingId } from "@absolutejs/vulnerabilities";
 
 const findingId = createStableFindingId({
-	tenantId: 'tenant-1',
-	assetId: 'production-web-1',
-	componentIdentity: 'pkg:deb/ubuntu/nginx@1.24.0-2ubuntu7.5',
-	vulnerabilityIds: ['CVE-2026-0001', 'USN-9999-1']
+  tenantId: "tenant-1",
+  assetId: "production-web-1",
+  componentIdentity: "pkg:deb/ubuntu/nginx@1.24.0-2ubuntu7.5",
+  vulnerabilityIds: ["CVE-2026-0001", "USN-9999-1"],
 });
 ```
 
@@ -101,23 +101,23 @@ ordering rules.
 
 ```ts
 import {
-	comparePackageVersions,
-	evaluateVersionConstraints
-} from '@absolutejs/vulnerabilities';
+  comparePackageVersions,
+  evaluateVersionConstraints,
+} from "@absolutejs/vulnerabilities";
 
 comparePackageVersions({
-	ecosystem: 'ubuntu',
-	left: '1.24.0-2ubuntu7.4',
-	right: '1.24.0-2ubuntu7.5'
+  ecosystem: "ubuntu",
+  left: "1.24.0-2ubuntu7.4",
+  right: "1.24.0-2ubuntu7.5",
 });
 
 evaluateVersionConstraints({
-	ecosystem: 'ubuntu',
-	installedVersion: '1.24.0-2ubuntu7.4',
-	constraints: [
-		{ operator: 'gte', version: '1.24.0' },
-		{ operator: 'lt', version: '1.24.0-2ubuntu7.5' }
-	]
+  ecosystem: "ubuntu",
+  installedVersion: "1.24.0-2ubuntu7.4",
+  constraints: [
+    { operator: "gte", version: "1.24.0" },
+    { operator: "lt", version: "1.24.0-2ubuntu7.5" },
+  ],
 });
 ```
 
@@ -139,16 +139,16 @@ notification routing in one validated contract. Use
 back to administrators when an alert has no owning asset.
 
 ```ts
-import { createMemoryFeedStore, syncFeed } from '@absolutejs/vulnerabilities';
+import { createMemoryFeedStore, syncFeed } from "@absolutejs/vulnerabilities";
 
 const result = await syncFeed({
-	adapter,
-	maxStaleMs: 24 * 60 * 60 * 1_000,
-	store: createMemoryFeedStore()
+  adapter,
+  maxStaleMs: 24 * 60 * 60 * 1_000,
+  store: createMemoryFeedStore(),
 });
 
-if (result.status === 'stale') {
-	// Cached intelligence remains available, with the provider error attached.
+if (result.status === "stale") {
+  // Cached intelligence remains available, with the provider error attached.
 }
 ```
 
@@ -168,20 +168,20 @@ advisories, so missing intelligence cannot be interpreted as a clean result.
 
 ```ts
 import {
-	admissionIntelligenceCoverageKey,
-	signAdmissionIntelligenceSnapshot
-} from '@absolutejs/vulnerabilities/intelligence-snapshot';
+  admissionIntelligenceCoverageKey,
+  signAdmissionIntelligenceSnapshot,
+} from "@absolutejs/vulnerabilities/intelligence-snapshot";
 
 const attestation = signAdmissionIntelligenceSnapshot({
-	coverage: components.map(({ identity }) =>
-		admissionIntelligenceCoverageKey(identity)
-	),
-	issuedAt: new Date().toISOString(),
-	kev: kevSnapshot,
-	keyId: 'vulnerability-intelligence-v1',
-	maxAgeMs: 24 * 60 * 60 * 1_000,
-	osv: osvSnapshot,
-	secret: signingSecret
+  coverage: components.map(({ identity }) =>
+    admissionIntelligenceCoverageKey(identity),
+  ),
+  issuedAt: new Date().toISOString(),
+  kev: kevSnapshot,
+  keyId: "vulnerability-intelligence-v1",
+  maxAgeMs: 24 * 60 * 60 * 1_000,
+  osv: osvSnapshot,
+  secret: signingSecret,
 });
 ```
 
@@ -192,17 +192,17 @@ transitions preserve trust when an operator rotates the signing identity.
 
 ```ts
 import {
-	createEvidenceSigningIdentity,
-	evidenceVerificationKeyFrom,
-	signVulnerabilityEvidenceBundle,
-	verifyVulnerabilityEvidenceBundle
-} from '@absolutejs/vulnerabilities/evidence-bundle';
+  createEvidenceSigningIdentity,
+  evidenceVerificationKeyFrom,
+  signVulnerabilityEvidenceBundle,
+  verifyVulnerabilityEvidenceBundle,
+} from "@absolutejs/vulnerabilities/evidence-bundle";
 
 const identity = createEvidenceSigningIdentity();
 const bundle = signVulnerabilityEvidenceBundle({ identity, payload });
 const verification = verifyVulnerabilityEvidenceBundle({
-	bundle,
-	trustedKeys: [evidenceVerificationKeyFrom(identity)]
+  bundle,
+  trustedKeys: [evidenceVerificationKeyFrom(identity)],
 });
 ```
 
@@ -230,3 +230,18 @@ witness fingerprint requires that receipt to match the exact log head and size.
 Applications that use multiple independent witnesses can call
 `verifyEvidenceWitnessQuorum`; duplicate receipts from one identity never count
 more than once toward the required quorum.
+
+## Project security scans
+
+Run `absolute scan` at a project root to check source exposure and the exact versions in its Bun text lockfile or npm v2/v3 lockfile. The source check reads files locally, reports credential locations with redacted excerpts, and detects sensitive files served publicly. It never evaluates project configuration. Use `--committed` on an exported commit. On a working checkout, the CLI checks Git's index for tracked environment files.
+
+The dependency check resolves registry packages including transitive and development dependencies, identifies local Bun workspaces separately, and matches package URLs against Grype's advisory database. Install Grype and run `grype db update` before using `--offline`. Missing tools, stale data, unreadable files, unsupported lockfiles and unidentified package versions produce an incomplete result. Source text and package lists stay local during dependency matching.
+
+```sh
+absolute scan --path ./shop
+absolute scan --json --offline
+absolute scan --only source --committed
+absolute scan --image registry.example.com/shop@sha256:…
+```
+
+Image scanning uses the registry directly. A digest identifies the exact artifact. The JSON report includes a schema version, coverage per check, scanner/database provenance, findings, locations, severity, and available fixed versions. Exit codes are 0 for a complete publishable result, 1 for a complete scan with blocking findings, and 2 for incomplete coverage or an invalid request. A severe source exposure or a fixable high or critical advisory blocks production. Other advisories remain visible. This inventories known advisories, including transitive packages; it does not establish runtime reachability.
