@@ -45,10 +45,31 @@ export type PublishSecurityFinding = {
 
 export type PublishSecurityCounts = Record<PublishSecuritySeverity, number>;
 
+/** Why a source scan stopped before reading every file: the first limit it
+ *  reached, or the files it could not read. */
+export type SourceScanStop =
+  | { reason: "time-budget"; budgetMs: number }
+  | { reason: "file-limit"; limit: number }
+  | { reason: "byte-limit"; limitBytes: number }
+  | { reason: "unreadable"; paths: { path: string; error: string }[] };
+
+/** How much of the source a scan covered. */
+export type SourceScanCoverage = {
+  /** Files found under the root (capped at the file limit). */
+  listedFiles: number;
+  /** Text files the scan meant to read. */
+  readableFiles: number;
+  checkedFiles: number;
+  checkedBytes: number;
+};
+
 export type PublishSecurityScanResult = {
   checkedFiles: number;
   /** False when the scan stopped at a limit; the findings are still real. */
   complete: boolean;
   counts: PublishSecurityCounts;
+  coverage: SourceScanCoverage;
   findings: PublishSecurityFinding[];
+  /** Null when complete. */
+  stop: SourceScanStop | null;
 };

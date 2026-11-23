@@ -112,3 +112,89 @@ test("declared dependencies require locked versions, including when a lockfile i
   );
   expect((await scanProject({ root })).complete).toBe(false);
 });
+
+test("Bun 1.3's version 2 lockfile is read like version 1; an unknown version says which", async () => {
+  const root = await fixture();
+  await writeFile(
+    join(root, "bun.lock"),
+    JSON.stringify({
+      lockfileVersion: 2,
+      configVersion: 1,
+      workspaces: { "": { dependencies: { real: "^1.0.0" } } },
+      packages: { real: ["real@1.0.0", "", {}, "sha512-x"] },
+    }),
+  );
+  expect(await lockedPackages(root)).toEqual({
+    file: "bun.lock",
+    purls: ["pkg:npm/real@1.0.0"],
+    unresolved: 0,
+  });
+  await writeFile(
+    join(root, "bun.lock"),
+    '{"lockfileVersion":9,"workspaces":{"":{}},"packages":{}}',
+  );
+  const report = await scanProject({ root, only: "dependencies" });
+  expect(report.complete).toBe(false);
+  expect(report.checks[0]?.detail).toContain("Unsupported bun.lock version 9");
+});
+
+test("an incomplete source scan says which limit stopped it and how much it read", async () => {
+  const root = await fixture();
+  await writeFile(join(root, "a.ts"), "export const a = 1;\n");
+  await writeFile(join(root, "b.ts"), "export const b = 2;\n");
+
+  // Out of time before the first file.
+  const timed = await scanProject({
+    root,
+    only: "source",
+    sourceTimeBudgetMs: -1,
+  });
+  const timedCheck = timed.checks[0];
+  expect(timed.complete).toBe(false);
+  expect(timedCheck?.stop).toEqual({ budgetMs: -1, reason: "time-budget" });
+  expect(timedCheck?.coverage).toMatchObject({
+    checkedFiles: 0,
+    readableFiles: 2,
+  });
+  expect(timedCheck?.detail).toContain("time budget after 0 of 2 files");
+
+  // A file over the size limit cannot be read: named, with the reason.
+  await writeFile(join(root, "huge.ts"), "x".repeat(2_097_153));
+  const partial = await scanProject({ root, only: "source" });
+  const partialCheck = partial.checks[0];
+  expect(partial.complete).toBe(false);
+  expect(partialCheck?.stop).toEqual({
+    paths: [{ error: "File exceeds scanner size limit", path: "huge.ts" }],
+    reason: "unreadable",
+  });
+  expect(partialCheck?.detail).toContain(
+    "Could not read huge.ts (File exceeds scanner size limit); read 2 of 3 files",
+  );
+  expect(
+    partial.findings.find((finding) => finding.rule === "scan-incomplete")
+      ?.summary,
+  ).toContain("Could not read huge.ts");
+
+  // Complete: nothing stopped it.
+  await rm(join(root, "huge.ts"));
+  const whole = await scanProject({ root, only: "source" });
+  expect(whole.complete).toBe(true);
+  expect(whole.checks[0]?.stop).toBeNull();
+  expect(whole.checks[0]?.detail).toBe("Project source");
+});
+
+test("more files than the limit stops at the file limit", async () => {
+  const root = await fixture();
+  await Promise.all(
+    Array.from({ length: 8_001 }, (_, index) =>
+      writeFile(join(root, `f${index}.txt`), ""),
+    ),
+  );
+  const report = await scanProject({ root, only: "source" });
+  expect(report.complete).toBe(false);
+  expect(report.checks[0]?.stop).toEqual({
+    limit: 8_000,
+    reason: "file-limit",
+  });
+  expect(report.checks[0]?.detail).toContain("limit of 8000 files");
+});

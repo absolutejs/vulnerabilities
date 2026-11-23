@@ -89,8 +89,12 @@ export async function lockedPackages(root: string) {
   const bun = await readInput(root, "bun.lock");
   if (bun !== null) {
     const lock = object(Bun.JSONC.parse(bun));
-    if (lock.lockfileVersion !== 0 && lock.lockfileVersion !== 1)
-      throw new Error("Unsupported bun.lock version");
+    /* Version 2 (Bun 1.3) adds `configVersion` and keeps every package as
+     * `["name@version", …]`, the shape read below. */
+    if (![0, 1, 2].includes(Number(lock.lockfileVersion)))
+      throw new Error(
+        `Unsupported bun.lock version ${String(lock.lockfileVersion)}`,
+      );
     const workspaces = object(lock.workspaces);
     const packages = Object.values(object(lock.packages));
     verifyCoverage(Object.values(workspaces), packages.length);

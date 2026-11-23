@@ -7,21 +7,44 @@ import { normalizeVulnerabilitySeverity } from "./index";
 import { lockedPackages } from "./project/inventory";
 import { fingerprintOf } from "./project/publishSecurityChecks";
 import {
-  scanProjectDirectory,
   countFindings,
+  describeSourceStop,
+  scanProjectDirectory,
 } from "./project/publishSecurityScan";
-import type { PublishSecurityFinding } from "./project/types";
+import type {
+  PublishSecurityFinding,
+  SourceScanCoverage,
+  SourceScanStop,
+} from "./project/types";
 
 export * from "./project/types";
 export * from "./project/publishSecurityChecks";
 export * from "./project/publishSecurityScan";
 
 const execute = promisify(execFile);
+
+const CAUSE_LENGTH = 240;
+
+/* The advice for the step that failed, and what actually went wrong: the
+ * error's first line, when it has one. */
+const withCause = (detail: string, error: unknown) => {
+  const cause = (error instanceof Error ? error.message : "")
+    .split("\n")[0]
+    ?.trim()
+    .slice(0, CAUSE_LENGTH);
+
+  return cause ? `${detail} (${cause})` : detail;
+};
 export type ScanCheck = {
   name: "source" | "dependencies" | "image";
   complete: boolean;
   checked: number;
+  /** What was checked, or, when incomplete, why it stopped and how far it
+   *  got, in a sentence a person can act on. */
   detail: string;
+  /** Source only: the limit it stopped at, and what it covered. */
+  coverage?: SourceScanCoverage;
+  stop?: SourceScanStop | null;
   databaseBuilt?: string;
   scannerVersion?: string;
 };
@@ -202,8 +225,13 @@ async function scanAdvisories(
         ? `${unresolved} lockfile entries could not be identified by package and version.`
         : file,
     });
-  } catch {
-    checks.push({ name: scope, checked, complete: false, detail });
+  } catch (error) {
+    checks.push({
+      name: scope,
+      checked,
+      complete: false,
+      detail: withCause(detail, error),
+    });
   } finally {
     if (directory) await rm(directory, { recursive: true, force: true });
   }
@@ -229,16 +257,18 @@ export async function scanProject(
         name: "source",
         checked: checkedFiles,
         complete: source.complete,
-        detail: source.complete
-          ? "Project source"
-          : "Source coverage was partial.",
+        coverage: source.coverage,
+        detail: source.stop
+          ? describeSourceStop(source.stop, source.coverage)
+          : "Project source",
+        stop: source.stop,
       });
-    } catch {
+    } catch (error) {
       checks.push({
         name: "source",
         complete: false,
         checked: 0,
-        detail: "Project source could not be read.",
+        detail: withCause("Project source could not be read.", error),
       });
     }
   }
