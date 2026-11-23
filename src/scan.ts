@@ -258,9 +258,12 @@ export async function scanProject(
         checked: checkedFiles,
         complete: source.complete,
         coverage: source.coverage,
-        detail: source.stop
-          ? describeSourceStop(source.stop, source.coverage)
-          : "Project source",
+        detail:
+          source.stop && source.coverage
+            ? describeSourceStop(source.stop, source.coverage)
+            : source.complete
+              ? "Project source"
+              : "Source coverage was partial.",
         stop: source.stop,
       });
     } catch (error) {
