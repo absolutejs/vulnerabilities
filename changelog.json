@@ -5,6 +5,20 @@
 		{
 			"changes": [
 				{
+					"detail": "Grype's vulnerability database is now updated as its own step before a scan, with up to 15 minutes (`databaseUpdateTimeoutMs`), and the scan then runs with auto-update off under its usual 3 minutes. A new database is about 200 MB to download and several GB to unpack; inside the scan it shared those 3 minutes, so on a busy host every scan was stopped partway through the download and the database never updated. Scans that overlap share one update. If the update fails but the installed database is still fresh enough, the scan goes ahead; if the scan then fails too, the update's error is what it reports.",
+					"kind": "fixed",
+					"summary": "A due database update no longer times out every dependency scan",
+					"symbols": [
+						"ScanOptions"
+					]
+				}
+			],
+			"date": "2026-11-24",
+			"version": "0.17.3"
+		},
+		{
+			"changes": [
+				{
 					"detail": "Grype stages its whole database archive (about 200 MB) in the temporary directory before unpacking it into its cache. Hosts that keep /tmp small and in memory (the AbsoluteJS control plane gives it 256 MB, shared with the project's source during a scan) ran out of space whenever a new database was due, and every dependency check came back incomplete, refusing production releases. The download now goes in `download/` beside the database cache (`GRYPE_DB_CACHE_DIR`, or `$XDG_CACHE_HOME/grype`). A failed Grype run now reports the last lines of what Grype wrote to stderr, or that it ran out of time, instead of only the command line.",
 					"kind": "fixed",
 					"summary": "Grype's database download no longer fills a small /tmp, and its failures say what Grype said"

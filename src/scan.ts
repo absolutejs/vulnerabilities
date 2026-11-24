@@ -108,6 +108,41 @@ export type ScanOptions = {
   image?: string;
   offline?: boolean;
   grype?: string;
+  /** How long Grype may take to download and install a new vulnerability
+   *  database before scanning (default 15 minutes). The scan itself keeps
+   *  its own, shorter limit. */
+  databaseUpdateTimeoutMs?: number;
+};
+
+const SCAN_TIMEOUT_MS = 180_000;
+const DATABASE_UPDATE_TIMEOUT_MS = 15 * 60_000;
+
+/* Updating the database is its own step: a new one is about 200 MB to
+ * download and several GB to unpack, which can take minutes on a busy host.
+ * Inside the scan it shared the scan's 3 minutes, and each scan was stopped
+ * partway through the download, so the database never got updated. One
+ * update at a time per Grype and cache: scans that arrive meanwhile wait
+ * for it instead of starting their own. */
+const databaseUpdates = new Map<string, Promise<void>>();
+
+const updateDatabase = (
+  grype: string,
+  config: string,
+  env: NodeJS.ProcessEnv,
+  timeout: number,
+) => {
+  const key = `${grype}\0${env.GRYPE_DB_CACHE_DIR ?? ""}`;
+  const running = databaseUpdates.get(key);
+  if (running) return running;
+  const update = execute(grype, ["--config", config, "-q", "db", "update"], {
+    env,
+    timeout,
+  })
+    .then(() => undefined)
+    .finally(() => databaseUpdates.delete(key));
+  databaseUpdates.set(key, update);
+
+  return update;
 };
 const object = (v: unknown): Record<string, unknown> => {
   if (!v || typeof v !== "object" || Array.isArray(v))
@@ -231,22 +266,41 @@ async function scanAdvisories(
     const config = join(directory, "scanner.yaml");
     await writeFile(config, "{}\n", { mode: 0o600 });
     const downloads = await grypeTemporaryDirectory();
+    const grype = options.grype ?? "grype";
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      GRYPE_DB_VALIDATE_AGE: "true",
+      GRYPE_CHECK_FOR_APP_UPDATE: "false",
+      ...(downloads ? { TMPDIR: downloads } : {}),
+    };
+    /* A failed update is not yet a failed scan: the database already
+     * installed may still be fresh enough, and the scan says if it is not.
+     * If the scan then fails, the update's failure is what to read. */
+    let updateFailure: unknown = null;
+    if (!options.offline)
+      await updateDatabase(
+        grype,
+        config,
+        env,
+        options.databaseUpdateTimeoutMs ?? DATABASE_UPDATE_TIMEOUT_MS,
+      ).catch((error: unknown) => {
+        updateFailure = error;
+      });
     const result = await execute(
-      options.grype ?? "grype",
+      grype,
       ["--config", config, "-q", "-o", "json", target],
       {
         cwd: directory,
-        timeout: 180000,
+        timeout: SCAN_TIMEOUT_MS,
         maxBuffer: 96 * 1024 * 1024,
-        env: {
-          ...process.env,
-          GRYPE_DB_VALIDATE_AGE: "true",
-          GRYPE_CHECK_FOR_APP_UPDATE: "false",
-          ...(downloads ? { TMPDIR: downloads } : {}),
-          ...(options.offline ? { GRYPE_DB_AUTO_UPDATE: "false" } : {}),
-        },
+        env: { ...env, GRYPE_DB_AUTO_UPDATE: "false" },
       },
-    );
+    ).catch((error: unknown) => {
+      if (updateFailure === null) throw error;
+      detail =
+        "Grype could not update its vulnerability database, and the one installed could not be used.";
+      throw updateFailure;
+    });
     detail = "Grype returned an invalid or incomplete report.";
     const report = object(JSON.parse(result.stdout));
     const descriptor = object(report.descriptor);
