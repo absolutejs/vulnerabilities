@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { normalizeVulnerabilitySeverity } from "./index";
@@ -25,15 +25,58 @@ const execute = promisify(execFile);
 
 const CAUSE_LENGTH = 240;
 
-/* The advice for the step that failed, and what actually went wrong: the
- * error's first line, when it has one. */
+const STDERR_LINES = 3;
+
+/* What actually went wrong. A command that failed says so on stderr, and
+ * its message is only the command line, so stderr's last lines come first;
+ * a command that ran out of time says that. Otherwise the error's first
+ * line. */
+const causeOf = (error: unknown) => {
+  if (!(error instanceof Error)) return "";
+  const failed = error as Error & {
+    killed?: boolean;
+    signal?: string | null;
+    stderr?: unknown;
+  };
+  const stderr =
+    typeof failed.stderr === "string"
+      ? failed.stderr
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .slice(-STDERR_LINES)
+          .join(" ")
+      : "";
+  if (stderr) return stderr;
+  if (failed.killed && failed.signal)
+    return `stopped by ${failed.signal} (it ran out of time)`;
+
+  return error.message.split("\n")[0]?.trim() ?? "";
+};
+
+/* The advice for the step that failed, and what actually went wrong. */
 const withCause = (detail: string, error: unknown) => {
-  const cause = (error instanceof Error ? error.message : "")
-    .split("\n")[0]
-    ?.trim()
-    .slice(0, CAUSE_LENGTH);
+  const cause = causeOf(error).slice(0, CAUSE_LENGTH);
 
   return cause ? `${detail} (${cause})` : detail;
+};
+
+/* Grype stages its whole database archive (about 200 MB) in the temporary
+ * directory before unpacking it into its cache. Hosts often keep /tmp in
+ * memory and small, where that fails partway with no space left, so the
+ * download goes beside the database it becomes: same disk, already sized
+ * for it. Null when that directory cannot be made; Grype then uses the
+ * default. */
+const grypeTemporaryDirectory = async () => {
+  const cache =
+    process.env.GRYPE_DB_CACHE_DIR ||
+    join(process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "grype");
+  const directory = join(cache, "download");
+
+  return mkdir(directory, { mode: 0o700, recursive: true }).then(
+    () => directory,
+    () => null,
+  );
 };
 export type ScanCheck = {
   name: "source" | "dependencies" | "image";
@@ -187,6 +230,7 @@ async function scanAdvisories(
       "Grype could not complete the scan. Check its installation, database freshness and access to the selected target.";
     const config = join(directory, "scanner.yaml");
     await writeFile(config, "{}\n", { mode: 0o600 });
+    const downloads = await grypeTemporaryDirectory();
     const result = await execute(
       options.grype ?? "grype",
       ["--config", config, "-q", "-o", "json", target],
@@ -198,6 +242,7 @@ async function scanAdvisories(
           ...process.env,
           GRYPE_DB_VALIDATE_AGE: "true",
           GRYPE_CHECK_FOR_APP_UPDATE: "false",
+          ...(downloads ? { TMPDIR: downloads } : {}),
           ...(options.offline ? { GRYPE_DB_AUTO_UPDATE: "false" } : {}),
         },
       },

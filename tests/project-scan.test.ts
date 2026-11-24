@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdtemp, writeFile, rm, symlink } from "node:fs/promises";
+import { chmod, mkdtemp, writeFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { advisoryFindings, scanExitCode, scanProject } from "../src/scan";
@@ -197,4 +197,32 @@ test("more files than the limit stops at the file limit", async () => {
     reason: "file-limit",
   });
   expect(report.checks[0]?.detail).toContain("limit of 8000 files");
+});
+
+test("Grype downloads beside its cache, and a failure says what Grype said", async () => {
+  const root = await fixture();
+  const cache = join(root, "grype-cache");
+  await writeFile(
+    join(root, "bun.lock"),
+    '{"lockfileVersion":1,"workspaces":{"":{}},"packages":{"a":["a@1.0.0"]}}',
+  );
+  const grype = join(root, "grype");
+  await writeFile(
+    grype,
+    '#!/bin/sh\necho "downloading to $TMPDIR" >&2\necho "failed to update the vulnerability database: write /tmp/x: no space left on device" >&2\nexit 1\n',
+  );
+  await chmod(grype, 0o755);
+  const previous = process.env.GRYPE_DB_CACHE_DIR;
+  process.env.GRYPE_DB_CACHE_DIR = cache;
+  try {
+    const report = await scanProject({ root, grype, only: "dependencies" });
+    const detail = report.checks[0]?.detail ?? "";
+    expect(report.complete).toBe(false);
+    expect(detail).toContain(`downloading to ${join(cache, "download")}`);
+    expect(detail).toContain("no space left on device");
+    expect(detail).not.toContain("Command failed");
+  } finally {
+    if (previous === undefined) delete process.env.GRYPE_DB_CACHE_DIR;
+    else process.env.GRYPE_DB_CACHE_DIR = previous;
+  }
 });
