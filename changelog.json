@@ -5,6 +5,17 @@
 		{
 			"changes": [
 				{
+					"detail": "The source scan reads text files up to 32 MiB instead of 2 MiB. Real projects commit text files of several MB: a generated search index (4.8 MB), generated data (3.5 MB), an SVG with an embedded image (10.9 MB). Each one over the old limit was left unread, which made the scan incomplete, and production refuses an incomplete scan. Reading them is cheap (an 11 MB file scans in well under a second), and the 64 MiB total and the time budget still bound a scan.",
+					"kind": "fixed",
+					"summary": "Text files of several MB are scanned instead of making the scan incomplete"
+				}
+			],
+			"date": "2026-11-24",
+			"version": "0.17.4"
+		},
+		{
+			"changes": [
+				{
 					"detail": "Grype's vulnerability database is now updated as its own step before a scan, with up to 15 minutes (`databaseUpdateTimeoutMs`), and the scan then runs with auto-update off under its usual 3 minutes. A new database is about 200 MB to download and several GB to unpack; inside the scan it shared those 3 minutes, so on a busy host every scan was stopped partway through the download and the database never updated. Scans that overlap share one update. If the update fails but the installed database is still fresh enough, the scan goes ahead; if the scan then fails too, the update's error is what it reports.",
 					"kind": "fixed",
 					"summary": "A due database update no longer times out every dependency scan",

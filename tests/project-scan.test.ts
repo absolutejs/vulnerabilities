@@ -159,7 +159,7 @@ test("an incomplete source scan says which limit stopped it and how much it read
   expect(timedCheck?.detail).toContain("time budget after 0 of 2 files");
 
   // A file over the size limit cannot be read: named, with the reason.
-  await writeFile(join(root, "huge.ts"), "x".repeat(2_097_153));
+  await writeFile(join(root, "huge.ts"), "x".repeat(33_554_433));
   const partial = await scanProject({ root, only: "source" });
   const partialCheck = partial.checks[0];
   expect(partial.complete).toBe(false);
@@ -282,4 +282,15 @@ esac
     databaseUpdateTimeoutMs: 100,
   });
   expect(timed.complete).toBe(true);
+});
+
+test("a text file of several MB (a generated index, an SVG with an embedded image) is read, not left out", async () => {
+  const root = await fixture();
+  await writeFile(
+    join(root, "searchIndex.json"),
+    JSON.stringify({ entries: "x".repeat(5_000_000) }),
+  );
+  const report = await scanProject({ root, only: "source" });
+  expect(report.complete).toBe(true);
+  expect(report.checks[0]?.checked).toBe(1);
 });

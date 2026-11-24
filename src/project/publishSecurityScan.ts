@@ -28,7 +28,12 @@ import {
  */
 
 const MAXIMUM_FILES = 8_000;
-const MAXIMUM_FILE_BYTES = 2_097_152;
+/* A generated search index, a data file, an SVG with an embedded image:
+ * real projects commit text files of several MB, and an unread file makes
+ * the whole scan incomplete (production refuses that). 32 MiB reads them
+ * all (11 MB scans in well under a second) while the total and the time
+ * budget still bound the scan. */
+const MAXIMUM_FILE_BYTES = 33_554_432;
 const MAXIMUM_TOTAL_BYTES = 67_108_864;
 const BINARY_SNIFF_BYTES = 4_096;
 const DEFAULT_TIME_BUDGET_MS = 15_000;
