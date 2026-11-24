@@ -226,3 +226,60 @@ test("Grype downloads beside its cache, and a failure says what Grype said", asy
     else process.env.GRYPE_DB_CACHE_DIR = previous;
   }
 });
+
+test("the database updates as its own step, once for scans that overlap, and its failure is what a failed scan reports", async () => {
+  const root = await fixture();
+  await writeFile(
+    join(root, "bun.lock"),
+    '{"lockfileVersion":1,"workspaces":{"":{}},"packages":{"a":["a@1.0.0"]}}',
+  );
+  const log = join(root, "calls.log");
+  const grype = join(root, "grype");
+  const report =
+    '{"matches":[],"descriptor":{"version":"0.110.0","db":{"status":{"valid":true,"built":"2026-11-23T06:28:32Z"}}}}';
+  await writeFile(
+    grype,
+    `#!/bin/sh
+case "$*" in
+  *"db update"*) echo "update $GRYPE_DB_AUTO_UPDATE" >> "${log}"; sleep 1; [ -f "${root}/update-fails" ] && { echo "failed to download the database: connection reset" >&2; exit 1; }; exit 0 ;;
+  *) echo "scan $GRYPE_DB_AUTO_UPDATE" >> "${log}"; [ -f "${root}/scan-fails" ] && { echo "the vulnerability database is too old" >&2; exit 1; }; echo '${report}' ;;
+esac
+`,
+  );
+  await chmod(grype, 0o755);
+  const both = await Promise.all([
+    scanProject({ root, grype, only: "dependencies" }),
+    scanProject({ root, grype, only: "dependencies" }),
+  ]);
+  expect(both.map((result) => result.complete)).toEqual([true, true]);
+  const calls = (await Bun.file(log).text()).trim().split("\n");
+  // One update for both, and the scans never update on their own.
+  expect(calls.filter((call) => call.startsWith("update"))).toHaveLength(1);
+  expect(calls.filter((call) => call === "scan false")).toHaveLength(2);
+
+  // An update that fails while the installed database still works.
+  await writeFile(join(root, "update-fails"), "");
+  expect(
+    (await scanProject({ root, grype, only: "dependencies" })).complete,
+  ).toBe(true);
+
+  // Both fail: the update's error is the cause.
+  await writeFile(join(root, "scan-fails"), "");
+  const failed = await scanProject({ root, grype, only: "dependencies" });
+  expect(failed.complete).toBe(false);
+  expect(failed.checks[0]?.detail).toContain(
+    "could not update its vulnerability database",
+  );
+  expect(failed.checks[0]?.detail).toContain("connection reset");
+
+  // A slow update is stopped by its own limit, not the scan's.
+  await rm(join(root, "update-fails"));
+  await rm(join(root, "scan-fails"));
+  const timed = await scanProject({
+    root,
+    grype,
+    only: "dependencies",
+    databaseUpdateTimeoutMs: 100,
+  });
+  expect(timed.complete).toBe(true);
+});
