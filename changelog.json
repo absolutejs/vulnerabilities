@@ -5,6 +5,17 @@
 		{
 			"changes": [
 				{
+					"detail": "Grype stages its whole database archive (about 200 MB) in the temporary directory before unpacking it into its cache. Hosts that keep /tmp small and in memory (the AbsoluteJS control plane gives it 256 MB, shared with the project's source during a scan) ran out of space whenever a new database was due, and every dependency check came back incomplete, refusing production releases. The download now goes in `download/` beside the database cache (`GRYPE_DB_CACHE_DIR`, or `$XDG_CACHE_HOME/grype`). A failed Grype run now reports the last lines of what Grype wrote to stderr, or that it ran out of time, instead of only the command line.",
+					"kind": "fixed",
+					"summary": "Grype's database download no longer fills a small /tmp, and its failures say what Grype said"
+				}
+			],
+			"date": "2026-11-24",
+			"version": "0.17.2"
+		},
+		{
+			"changes": [
+				{
 					"detail": "`coverage` and `stop` on `PublishSecurityScanResult` are optional, so a result built before 0.17 (a test double, or a scan relayed from a host on an older version) still type-checks. Scans made by 0.17 always set both.",
 					"kind": "fixed",
 					"summary": "A scan result from before 0.17 still fits PublishSecurityScanResult",
